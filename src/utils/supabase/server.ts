@@ -8,7 +8,32 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return {} as any
+    return {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              single: () => Promise.resolve({ data: null, error: null }),
+              limit: () => Promise.resolve({ data: [], error: null }),
+              then: (cb: any) => cb({ data: [], error: null })
+            }),
+            single: () => Promise.resolve({ data: null, error: null }),
+            then: (cb: any) => cb({ data: [], error: null })
+          }),
+          order: () => ({
+            limit: () => Promise.resolve({ data: [], error: null }),
+            then: (cb: any) => cb({ data: [], error: null })
+          }),
+          then: (cb: any) => cb({ data: [], error: null })
+        }),
+        upsert: () => Promise.resolve({ data: null, error: null }),
+      }),
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
+        signOut: () => Promise.resolve({ error: null }),
+      }
+    } as any
   }
 
   return createServerClient(

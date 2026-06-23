@@ -191,6 +191,120 @@ export interface Database {
           }
         ]
       }
+      services: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          title: string
+          slug: string
+          short_description: string | null
+          full_description: string | null
+          price_range: string | null
+          featured_image: string | null
+          additional_images: string[] | null
+          is_published: boolean
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title: string
+          slug: string
+          short_description?: string | null
+          full_description?: string | null
+          price_range?: string | null
+          featured_image?: string | null
+          additional_images?: string[] | null
+          is_published?: boolean
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title?: string
+          slug?: string
+          short_description?: string | null
+          full_description?: string | null
+          price_range?: string | null
+          featured_image?: string | null
+          additional_images?: string[] | null
+          is_published?: boolean
+          sort_order?: number
+        }
+      }
+      gallery_items: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          title: string
+          location: string | null
+          service_category: string | null
+          before_image: string | null
+          after_image: string | null
+          additional_images: string[] | null
+          description: string | null
+          completion_date: string | null
+          is_featured: boolean
+          is_published: boolean
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title: string
+          location?: string | null
+          service_category?: string | null
+          before_image?: string | null
+          after_image?: string | null
+          additional_images?: string[] | null
+          description?: string | null
+          completion_date?: string | null
+          is_featured?: boolean
+          is_published?: boolean
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          title?: string
+          location?: string | null
+          service_category?: string | null
+          before_image?: string | null
+          after_image?: string | null
+          additional_images?: string[] | null
+          description?: string | null
+          completion_date?: string | null
+          is_featured?: boolean
+          is_published?: boolean
+          sort_order?: number
+        }
+      }
+      site_content: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          content: Json
+        }
+        Insert: {
+          id: string
+          created_at?: string
+          updated_at?: string
+          content?: Json
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          content?: Json
+        }
+      }
     }
     Views: {
       [_ in any]: never

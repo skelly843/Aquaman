@@ -143,6 +143,96 @@ create policy "Employees and admins can manage job photos"
     )
   );
 
+-- Services Table
+create table services (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  title text not null,
+  slug text unique not null,
+  short_description text,
+  full_description text,
+  price_range text,
+  featured_image text,
+  additional_images text[], -- Array of image URLs
+  is_published boolean default false,
+  sort_order integer default 0
+);
+
+alter table services enable row level security;
+
+create policy "Anyone can view published services"
+  on services for select
+  using ( is_published = true );
+
+create policy "Admins can manage services"
+  on services for all
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid()
+      and profiles.role = 'admin'
+    )
+  );
+
+-- Gallery Items Table
+create table gallery_items (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  title text not null,
+  location text,
+  service_category text,
+  before_image text,
+  after_image text,
+  additional_images text[],
+  description text,
+  completion_date date,
+  is_featured boolean default false,
+  is_published boolean default false,
+  sort_order integer default 0
+);
+
+alter table gallery_items enable row level security;
+
+create policy "Anyone can view published gallery items"
+  on gallery_items for select
+  using ( is_published = true );
+
+create policy "Admins can manage gallery items"
+  on gallery_items for all
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid()
+      and profiles.role = 'admin'
+    )
+  );
+
+-- Site Content / Page Sections Table
+create table site_content (
+  id text primary key, -- section identifier (e.g., 'homepage_hero')
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  content jsonb not null default '{}'::jsonb
+);
+
+alter table site_content enable row level security;
+
+create policy "Anyone can view site content"
+  on site_content for select
+  using ( true );
+
+create policy "Admins can manage site content"
+  on site_content for all
+  using (
+    exists (
+      select 1 from profiles
+      where profiles.id = auth.uid()
+      and profiles.role = 'admin'
+    )
+  );
+
 -- Function to handle new user signup
 create function public.handle_new_user()
 returns trigger as $$
