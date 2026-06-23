@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Droplet, Lock, Mail, AlertCircle } from 'lucide-react'
+import { Droplet, Lock, Mail, AlertCircle, Loader2 } from 'lucide-react'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
@@ -11,40 +11,58 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const supabase = createClient()
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
+      if (!supabase || !supabase.auth) {
+        throw new Error('Authentication service is unavailable.')
+      }
+
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (loginError) {
+        setError(loginError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!data.user) {
+        throw new Error('Login failed. Please check your credentials.')
+      }
+
+      // Double check if admin
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profileError || profile?.role !== 'admin') {
+        await supabase.auth.signOut()
+        setError('Unauthorized access. Admin role required.')
+        setLoading(false)
+        return
+      }
+
+      router.push('/admin')
+      router.refresh()
+    } catch (err: any) {
+      console.error('Admin login error:', err)
+      setError(err.message || 'An unexpected error occurred.')
+    } finally {
+      // Note: We don't always set loading to false here if we're redirecting
+      // But for errors, we need it.
+      if (error) setLoading(false)
     }
-
-    // Double check if admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      await supabase.auth.signOut()
-      setError('Unauthorized access. Admin role required.')
-      setLoading(false)
-      return
-    }
-
-    router.push('/admin')
-    router.refresh()
   }
 
   return (
@@ -70,6 +88,7 @@ export default function AdminLoginPage() {
                 className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 placeholder="admin@example.com"
                 required
+                disabled={loading}
               />
             </div>
           </div>
@@ -84,12 +103,13 @@ export default function AdminLoginPage() {
                 className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 placeholder="••••••••"
                 required
+                disabled={loading}
               />
             </div>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-start space-x-2">
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-start space-x-2 animate-in fade-in slide-in-from-top-1">
               <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -98,9 +118,14 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin mr-2" size={20} />
+                Authenticating...
+              </>
+            ) : 'Sign In to Dashboard'}
           </button>
         </form>
       </div>

@@ -1,6 +1,9 @@
 import Link from 'next/link'
 import { Droplet, Shield, Clock, ArrowRight } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
+import { Database } from '@/types/database.types'
+
+type Service = Database['public']['Tables']['services']['Row']
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -90,7 +93,7 @@ export default async function LandingPage() {
               <p className="text-slate-600">Professional solutions for all your water and pool needs.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {services?.map((service) => (
+              {services?.map((service: Service) => (
                 <div key={service.id} className="group p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-blue-50 transition-all">
                   <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors overflow-hidden">
                     {service.featured_image ? (

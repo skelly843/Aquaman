@@ -8,30 +8,32 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    // For server components, we return a mock that logs errors
+    // This allows the build to finish but indicates issues at runtime
     return {
       from: () => ({
         select: () => ({
           eq: () => ({
             order: () => ({
-              single: () => Promise.resolve({ data: null, error: null }),
-              limit: () => Promise.resolve({ data: [], error: null }),
-              then: (cb: any) => cb({ data: [], error: null })
+              single: () => Promise.resolve({ data: null, error: new Error('Missing Supabase Env Vars') }),
+              limit: () => Promise.resolve({ data: [], error: new Error('Missing Supabase Env Vars') }),
+              then: (cb: any) => cb({ data: [], error: new Error('Missing Supabase Env Vars') })
             }),
-            single: () => Promise.resolve({ data: null, error: null }),
-            then: (cb: any) => cb({ data: [], error: null })
+            single: () => Promise.resolve({ data: null, error: new Error('Missing Supabase Env Vars') }),
+            then: (cb: any) => cb({ data: [], error: new Error('Missing Supabase Env Vars') })
           }),
           order: () => ({
-            limit: () => Promise.resolve({ data: [], error: null }),
-            then: (cb: any) => cb({ data: [], error: null })
+            limit: () => Promise.resolve({ data: [], error: new Error('Missing Supabase Env Vars') }),
+            then: (cb: any) => cb({ data: [], error: new Error('Missing Supabase Env Vars') })
           }),
-          then: (cb: any) => cb({ data: [], error: null })
+          then: (cb: any) => cb({ data: [], error: new Error('Missing Supabase Env Vars') })
         }),
-        upsert: () => Promise.resolve({ data: null, error: null }),
+        upsert: () => Promise.resolve({ data: null, error: new Error('Missing Supabase Env Vars') }),
       }),
       auth: {
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-        signInWithPassword: () => Promise.resolve({ data: { user: null }, error: null }),
-        signOut: () => Promise.resolve({ error: null }),
+        getUser: () => Promise.resolve({ data: { user: null }, error: new Error('Missing Supabase Env Vars') }),
+        signInWithPassword: () => Promise.resolve({ data: { user: null }, error: new Error('Missing Supabase Env Vars') }),
+        signOut: () => Promise.resolve({ error: new Error('Missing Supabase Env Vars') }),
       }
     } as any
   }

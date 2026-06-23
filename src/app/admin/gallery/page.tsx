@@ -13,6 +13,8 @@ export default async function AdminGalleryPage() {
     .select('*')
     .order('sort_order', { ascending: true })
 
+  const typedItems = (items as unknown as GalleryItem[]) || []
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -41,7 +43,7 @@ export default async function AdminGalleryPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {items?.map((item) => (
+        {typedItems.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden group">
             <div className="aspect-video relative bg-slate-100 border-b border-slate-100">
               {item.after_image ? (
@@ -91,7 +93,7 @@ export default async function AdminGalleryPage() {
             </div>
           </div>
         ))}
-        {!items?.length && (
+        {typedItems.length === 0 && (
           <div className="col-span-full py-20 bg-white rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center">
             <div className="p-4 bg-slate-50 rounded-full mb-4 text-slate-300">
               <ImageIcon size={48} />

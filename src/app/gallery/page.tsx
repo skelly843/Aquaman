@@ -27,7 +27,7 @@ export default async function GalleryPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {items?.map((item) => (
+          {items?.map((item: GalleryItem) => (
             <div key={item.id} className="space-y-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 space-y-2">

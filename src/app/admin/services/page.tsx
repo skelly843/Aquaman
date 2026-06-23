@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Globe, Lock } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Globe, Lock, Image as ImageIcon, Wrench } from 'lucide-react'
 import { Database } from '@/types/database.types'
 
 type Service = Database['public']['Tables']['services']['Row']
@@ -62,7 +62,7 @@ export default async function AdminServicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {services?.map((service) => (
+              {services?.map((service: Service) => (
                 <tr key={service.id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">

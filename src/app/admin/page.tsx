@@ -32,6 +32,9 @@ export default async function AdminDashboard() {
     .order('updated_at', { ascending: false })
     .limit(3)
 
+  const typedRecentServices = (recentServices as any[]) || []
+  const typedRecentGallery = (recentGallery as any[]) || []
+
   const stats = [
     { label: 'Total Services', value: serviceCount || 0, icon: Wrench, color: 'bg-blue-500', href: '/admin/services' },
     { label: 'Gallery Items', value: galleryCount || 0, icon: ImageIcon, color: 'bg-purple-500', href: '/admin/gallery' },
@@ -78,7 +81,7 @@ export default async function AdminDashboard() {
             <TrendingUp className="text-green-500" size={20} />
           </div>
           <div className="divide-y divide-slate-50">
-            {recentServices?.map((item) => (
+            {typedRecentServices.map((item) => (
               <div key={item.title} className="p-6 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-slate-800">{item.title}</p>
@@ -89,7 +92,7 @@ export default async function AdminDashboard() {
                 </span>
               </div>
             ))}
-            {recentGallery?.map((item) => (
+            {typedRecentGallery.map((item) => (
               <div key={item.title} className="p-6 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-slate-800">{item.title}</p>
@@ -100,7 +103,7 @@ export default async function AdminDashboard() {
                 </span>
               </div>
             ))}
-            {(!recentServices?.length && !recentGallery?.length) && (
+            {(typedRecentServices.length === 0 && typedRecentGallery.length === 0) && (
               <div className="p-12 text-center">
                 <p className="text-slate-400">No recent activity found.</p>
               </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { AlertCircle, Loader2, Lock, Mail, Droplet } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -10,69 +11,118 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const supabase = createClient()
 
-    if (error) {
-      setError(error.message)
+      if (!supabase || !supabase.auth) {
+        throw new Error('Authentication service is unavailable.')
+      }
+
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (loginError) {
+        setError(loginError.message)
+      } else {
+        router.push('/dashboard')
+        router.refresh()
+      }
+    } catch (err: any) {
+      console.error('Login error:', err)
+      setError(err.message || 'An unexpected error occurred.')
+    } finally {
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
     }
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2 bg-gray-50">
-      <div className="p-8 bg-white shadow-md rounded-lg w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-blue-600">Aquaman Portal Login</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
+    <div className="flex flex-col items-center justify-center min-h-screen py-12 bg-slate-50 px-6">
+      <div className="p-10 bg-white shadow-xl rounded-2xl w-full max-w-md border border-slate-200">
+        <div className="flex flex-col items-center mb-8 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4 text-blue-600">
+            <Droplet size={32} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Portal Login</h1>
+          <p className="text-slate-500 mt-2 font-medium">Manage your Aquaman services</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-sm font-bold text-slate-700">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                placeholder="name@example.com"
+                required
+                disabled={loading}
+              />
+            </div>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-bold text-slate-700">Password</label>
+              <a href="#" className="text-xs font-bold text-blue-600 hover:underline">Forgot password?</a>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                placeholder="••••••••"
+                required
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-start space-x-2 animate-in fade-in slide-in-from-top-1">
+              <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-all transform active:scale-[0.98]"
           >
-            {loading ? 'Logging in...' : 'Log in'}
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin mr-2" size={20} />
+                Logging in...
+              </>
+            ) : 'Sign In'}
           </button>
         </form>
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
+
+        <div className="mt-8 text-center pt-6 border-t border-slate-100">
+          <p className="text-sm text-slate-600">
             Don't have an account?{' '}
-            <a href="/signup" className="text-blue-600 hover:underline">
-              Sign up
+            <a href="/signup" className="font-bold text-blue-600 hover:underline">
+              Create one
             </a>
           </p>
         </div>
+      </div>
+      <div className="mt-8">
+        <a href="/" className="text-slate-400 hover:text-slate-600 transition-colors text-sm font-medium">
+          &larr; Back to Public Website
+        </a>
       </div>
     </div>
   )
