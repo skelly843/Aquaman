@@ -24,6 +24,7 @@ export default function LoginPage() {
         throw new Error('Authentication service is unavailable.')
       }
 
+      // Exact format requested: signInWithPassword({ email, password })
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,

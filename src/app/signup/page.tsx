@@ -12,7 +12,6 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,16 +25,15 @@ export default function SignupPage() {
         throw new Error('Authentication service is unavailable.')
       }
 
+      // Simplified signup call as requested
       const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
-            role: 'customer',
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+            full_name: fullName
+          }
+        }
       })
 
       if (signupError) {

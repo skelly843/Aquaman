@@ -1,12 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // During build or if env vars are missing, we return a proxy that throws
-    // helpful errors when accessed. This prevents total app crashes on load.
+    console.error('Supabase configuration missing: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.')
+
     return new Proxy({} as any, {
       get: (target, prop) => {
         if (prop === 'auth' || prop === 'from' || prop === 'storage') {
@@ -26,6 +26,11 @@ export function createClient() {
         return undefined
       }
     })
+  }
+
+  // Ensure URL doesn't contain /auth/v1 or similar
+  if (supabaseUrl.includes('/auth/') || supabaseUrl.includes('/rest/')) {
+    console.error('Malformed Supabase URL: URL should be the base project URL only (e.g., https://xyz.supabase.co)')
   }
 
   return createBrowserClient(

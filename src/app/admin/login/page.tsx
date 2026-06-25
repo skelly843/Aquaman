@@ -24,6 +24,7 @@ export default function AdminLoginPage() {
         throw new Error('Authentication service is unavailable.')
       }
 
+      // Exact format requested: signInWithPassword({ email, password })
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -59,8 +60,6 @@ export default function AdminLoginPage() {
       console.error('Admin login error:', err)
       setError(err.message || 'An unexpected error occurred.')
     } finally {
-      // Note: We don't always set loading to false here if we're redirecting
-      // But for errors, we need it.
       if (error) setLoading(false)
     }
   }

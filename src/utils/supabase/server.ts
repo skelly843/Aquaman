@@ -4,12 +4,12 @@ import { cookies } from 'next/headers'
 export async function createClient() {
   const cookieStore = await cookies()
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '')
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase configuration missing for server client.')
     // For server components, we return a mock that logs errors
-    // This allows the build to finish but indicates issues at runtime
     return {
       from: () => ({
         select: () => ({
@@ -33,6 +33,7 @@ export async function createClient() {
       auth: {
         getUser: () => Promise.resolve({ data: { user: null }, error: new Error('Missing Supabase Env Vars') }),
         signInWithPassword: () => Promise.resolve({ data: { user: null }, error: new Error('Missing Supabase Env Vars') }),
+        signUp: () => Promise.resolve({ data: { user: null }, error: new Error('Missing Supabase Env Vars') }),
         signOut: () => Promise.resolve({ error: new Error('Missing Supabase Env Vars') }),
       }
     } as any
@@ -46,7 +47,7 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: any[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
