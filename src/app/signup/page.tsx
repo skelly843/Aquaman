@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 
 export default function SignupPage() {
@@ -25,14 +24,15 @@ export default function SignupPage() {
         throw new Error('Authentication service is unavailable.')
       }
 
-      // Simplified signup call as requested
+      // Exact implementation requested by user
       const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
 

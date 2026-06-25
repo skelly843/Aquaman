@@ -6,12 +6,12 @@ To deploy the Aquaman Business Management Portal successfully, you must configur
 
 These are required for authentication and database access.
 
-| Variable Name | Description | Example / Note |
+| Variable Name | Description | Required Value Format |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL. | `https://ntorlyurucgfrxncxrug.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL. | **MUST** be the base URL only: `https://ntorlyurucgfrxncxrug.supabase.co`. Do **NOT** include `/rest/v1` or `/auth/v1`. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase Project API "anon" key. | Find this in Settings > API. |
 
-**Important:** Ensure the `NEXT_PUBLIC_SUPABASE_URL` does **not** include trailing slashes or paths like `/auth/v1`.
+**CRITICAL:** If `NEXT_PUBLIC_SUPABASE_URL` includes a path component (like `/rest/v1`), the application will throw a runtime error and authentication will fail.
 
 ## Stripe Configuration
 
