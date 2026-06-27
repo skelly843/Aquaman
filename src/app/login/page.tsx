@@ -24,16 +24,28 @@ export default function LoginPage() {
         throw new Error('Authentication service is unavailable.')
       }
 
-      // Exact format requested: signInWithPassword({ email, password })
-      const { error: loginError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (loginError) {
         setError(loginError.message)
-      } else {
-        router.push('/dashboard')
+      } else if (authData.user) {
+        // Fetch user role to decide redirect
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', authData.user.id)
+          .single()
+
+        if (profile?.role === 'admin') {
+          router.push('/admin')
+        } else if (profile?.role === 'employee') {
+          router.push('/employee')
+        } else {
+          router.push('/customer')
+        }
         router.refresh()
       }
     } catch (err: any) {
@@ -121,10 +133,12 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="mt-8">
-        <a href="/" className="text-slate-400 hover:text-slate-600 transition-colors text-sm font-medium">
+        <Link href="/" className="text-slate-400 hover:text-slate-600 transition-colors text-sm font-medium">
           &larr; Back to Public Website
-        </a>
+        </Link>
       </div>
     </div>
   )
 }
+
+import Link from 'next/link'

@@ -1,31 +1,39 @@
-# Deployment Configuration
-
-To deploy the Aquaman Business Management Portal successfully, you must configure the following environment variables in your hosting provider (e.g., Netlify).
+# Deployment & Administration Guide
 
 ## Supabase Configuration
 
-These are required for authentication and database access.
+Configure these environment variables in your hosting provider (e.g., Netlify).
 
-| Variable Name | Description | Required Value Format |
+| Variable Name | Description | Value Format |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL. | **MUST** be the base URL only: `https://ntorlyurucgfrxncxrug.supabase.co`. Do **NOT** include `/rest/v1` or `/auth/v1`. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase Project API "anon" key. | Find this in Settings > API. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL. | Base URL only: `https://xyz.supabase.co`. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase API "anon" key. | Found in Settings > API. |
 
-**CRITICAL:** If `NEXT_PUBLIC_SUPABASE_URL` includes a path component (like `/rest/v1`), the application will throw a runtime error and authentication will fail.
+## First-Time Admin Promotion
 
-## Stripe Configuration
+By default, **every** new user who signs up is assigned the `customer` role for security. To create your first admin account:
 
-These are required for processing payments and handling webhooks.
+1. Go to your public website and **Sign Up** for a new account.
+2. Log in to your **Supabase Dashboard**.
+3. Go to the **Table Editor** and select the `profiles` table.
+4. Find the row corresponding to your email/ID.
+5. Manually change the `role` column from `customer` to `admin`.
+6. Refresh your website; you will now have access to the `/admin` routes.
 
-| Variable Name | Description | Example / Note |
-| :--- | :--- | :--- |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Your Stripe Publishable Key. | Starts with `pk_test_` or `pk_live_`. |
-| `STRIPE_SECRET_KEY` | Your Stripe Secret Key. | Starts with `sk_test_` or `sk_live_`. |
-| `STRIPE_WEBHOOK_SECRET` | Your Stripe Webhook Secret. | Obtained from the Stripe CLI or Dashboard during webhook setup. |
+## Promoting Employees
 
-## Role Management
+Once you are an admin, you can promote other users to `admin` or `employee` roles directly from the application:
 
-The system uses a `profiles` table to manage roles. To designate an admin:
-1. Sign up through the public signup page.
-2. In the Supabase Dashboard, go to the `profiles` table.
-3. Update the `role` column for your user ID to `admin`.
+1. Log in as an admin.
+2. Navigate to **Customers & Users** (or `/admin/customers`).
+3. Click **Manage** on the user you wish to promote.
+4. In the **Manage Permissions** sidebar, select the new role and click **Update Role**.
+
+## Database Setup
+
+To apply the necessary table structures, triggers, and RLS policies, run the content of `schema.sql` in the **Supabase SQL Editor**.
+
+**Key Security Features:**
+- **Strict Defaults:** The `handle_new_user` trigger ignores any role passed from the frontend and always defaults to `customer`.
+- **RLS Protection:** Customers are logically isolated. They cannot query or modify data belonging to other users.
+- **Middleware Guard:** Server-side redirection prevents customers from even seeing the admin UI.

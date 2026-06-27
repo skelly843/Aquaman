@@ -11,7 +11,6 @@ export interface Database {
     Tables: {
       appointments: {
         Row: {
-          appointment_id: string
           created_at: string
           customer_id: string
           employee_id: string | null
@@ -22,9 +21,9 @@ export interface Database {
           service_type: string
           status: string | null
           total_price: number | null
+          created_by: string | null
         }
         Insert: {
-          appointment_id?: string
           created_at?: string
           customer_id: string
           employee_id?: string | null
@@ -35,9 +34,9 @@ export interface Database {
           service_type: string
           status?: string | null
           total_price?: number | null
+          created_by?: string | null
         }
         Update: {
-          appointment_id?: string
           created_at?: string
           customer_id?: string
           employee_id?: string | null
@@ -48,6 +47,7 @@ export interface Database {
           service_type?: string
           status?: string | null
           total_price?: number | null
+          created_by?: string | null
         }
         Relationships: [
           {
@@ -156,6 +156,58 @@ export interface Database {
           }
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          receiver_id: string
+          related_appointment_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          receiver_id: string
+          related_appointment_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          receiver_id?: string
+          related_appointment_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_related_appointment_id_fkey"
+            columns: ["related_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -164,6 +216,8 @@ export interface Database {
           phone: string | null
           role: string | null
           updated_at: string | null
+          created_at: string | null
+          email: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -172,6 +226,8 @@ export interface Database {
           phone?: string | null
           role?: string | null
           updated_at?: string | null
+          created_at?: string | null
+          email?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -180,6 +236,8 @@ export interface Database {
           phone?: string | null
           role?: string | null
           updated_at?: string | null
+          created_at?: string | null
+          email?: string | null
         }
         Relationships: [
           {
