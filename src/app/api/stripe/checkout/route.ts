@@ -36,8 +36,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment',
-      success_url: `${request.headers.get('origin')}/customer/invoices?success=true`,
-      cancel_url: `${request.headers.get('origin')}/customer/invoices?canceled=true`,
+      success_url: `${request.headers.get('origin')}/portal/invoices?success=true`,
+      cancel_url: `${request.headers.get('origin')}/portal/invoices?canceled=true`,
       metadata: {
         invoiceId: invoice.id,
         customerId: invoice.customer_id,

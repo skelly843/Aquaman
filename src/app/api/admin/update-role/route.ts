@@ -23,15 +23,22 @@ export async function POST(request: Request) {
     .eq('id', user.id)
     .single()
 
-  if (currentUserProfile?.role !== 'admin') {
+  const currentRole = currentUserProfile?.role || 'customer'
+  if (currentRole !== 'admin' && currentRole !== 'global_admin') {
     return new Response('Forbidden', { status: 403 })
   }
 
-  // Prevent removing the last admin (basic check)
-  if (role !== 'admin' && (await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin')).count === 1) {
+  // Prevent removing the last admin / global_admin
+  const { count: adminCount } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .in('role', ['admin', 'global_admin'])
+
+  if ((role !== 'admin' && role !== 'global_admin') && adminCount === 1) {
     const { data: targetProfile } = await supabase.from('profiles').select('role').eq('id', userId).single()
-    if (targetProfile?.role === 'admin') {
-        return new Response('Cannot remove the last admin account', { status: 400 })
+    const targetRole = targetProfile?.role || 'customer'
+    if (targetRole === 'admin' || targetRole === 'global_admin') {
+        return new Response('Cannot remove the last administrative account', { status: 400 })
     }
   }
 
