@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Calendar as CalendarIcon, Clock, Plus, Edit2, AlertCircle, Trash2, CheckCircle2, User, Home, HelpCircle } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Plus, Edit2, AlertCircle, Trash2, CheckCircle2, User, Home, HelpCircle, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function AdminCalendarPage() {

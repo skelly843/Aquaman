@@ -85,14 +85,14 @@ export default async function AdminDashboard() {
       .from('payments')
       .select('amount')
     if (payments) {
-      monthlyIncome = payments.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+      monthlyIncome = payments.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
     }
 
     const { data: expenses } = await supabase
       .from('expenses')
       .select('amount')
     if (expenses) {
-      monthlyExpense = expenses.reduce((acc, curr) => acc + Number(curr.amount || 0), 0)
+      monthlyExpense = expenses.reduce((acc: number, curr: any) => acc + Number(curr.amount || 0), 0)
     }
   }
 
@@ -179,7 +179,7 @@ export default async function AdminDashboard() {
             <Link href="/admin/customers" className="text-xs font-bold text-blue-600 hover:underline">Manage Customers</Link>
           </div>
           <div className="divide-y divide-slate-50">
-            {recentCustomers?.map((customer) => (
+            {recentCustomers?.map((customer: any) => (
               <div key={customer.id} className="p-5 flex items-center justify-between">
                 <div>
                   <p className="font-bold text-slate-800">{customer.first_name} {customer.last_name}</p>
@@ -208,7 +208,7 @@ export default async function AdminDashboard() {
             <Link href="/admin/notes" className="text-xs font-bold text-blue-600 hover:underline">View Notes</Link>
           </div>
           <div className="divide-y divide-slate-50">
-            {recentNotes?.map((note) => (
+            {recentNotes?.map((note: any) => (
               <div key={note.id} className="p-5 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
