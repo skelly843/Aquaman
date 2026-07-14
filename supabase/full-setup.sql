@@ -1,21 +1,30 @@
 -- supabase/full-setup.sql
--- Combined complete SQL setup for Aquaman Plumbing & General Contracting Business Portal
+-- Complete Relational SQL Schema Setup & Verification for Aquaman Plumbing & General Contracting Business Portal
 
--- Run the same schema definition
+-- 1. PostgreSQL Extensions
 create extension if not exists "uuid-ossp";
+
+-- 2. Clean teardown to ensure pure idempotent setup if re-run
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user();
+
+-- 3. ENUMS
+-- Note: Instead of custom enums that can complicate re-runs, we use check constraints.
+
+-- 4. TABLES
 
 -- Profiles Table (Linked to auth.users)
 create table if not exists public.profiles (
   id uuid references auth.users on delete cascade not null primary key,
-  updated_at timestamp with time zone default now(),
-  created_at timestamp with time zone default now(),
   email text,
   full_name text,
   avatar_url text,
   role text check (role in ('global_admin', 'admin', 'employee', 'customer')) default 'customer',
   phone text,
   is_active boolean default true,
-  last_login_at timestamp with time zone
+  last_login_at timestamp with time zone,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
 );
 
 alter table public.profiles enable row level security;
@@ -32,12 +41,23 @@ create table if not exists public.customers (
   preferred_contact_method text check (preferred_contact_method in ('email', 'phone', 'text')) default 'email',
   emergency_contact_info text,
   account_status text check (account_status in ('active', 'disabled')) default 'active',
-  assigned_admin_id uuid references public.profiles(id),
+  assigned_admin_id uuid references public.profiles(id) on delete set null,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
 
 alter table public.customers enable row level security;
+
+-- Admin Customer Assignments
+create table if not exists public.admin_customer_assignments (
+  id uuid default gen_random_uuid() primary key,
+  admin_id uuid references public.profiles(id) on delete cascade not null,
+  customer_id uuid references public.customers(id) on delete cascade not null,
+  assigned_at timestamp with time zone default now(),
+  unique (admin_id, customer_id)
+);
+
+alter table public.admin_customer_assignments enable row level security;
 
 -- Customer Properties table
 create table if not exists public.customer_properties (
@@ -88,7 +108,29 @@ create table if not exists public.navigation_items (
 
 alter table public.navigation_items enable row level security;
 
--- Page Sections System
+-- Website Pages
+create table if not exists public.website_pages (
+  id uuid default gen_random_uuid() primary key,
+  slug text unique not null,
+  title text not null,
+  is_active boolean default true,
+  created_at timestamp with time zone default now()
+);
+
+alter table public.website_pages enable row level security;
+
+-- Website Content Blocks
+create table if not exists public.website_content_blocks (
+  id uuid default gen_random_uuid() primary key,
+  page_id uuid references public.website_pages(id) on delete cascade,
+  block_key text not null,
+  content_json jsonb default '{}'::jsonb,
+  updated_at timestamp with time zone default now()
+);
+
+alter table public.website_content_blocks enable row level security;
+
+-- Page Sections System (Legacy site_content & page_sections fallback alignment)
 create table if not exists public.page_sections (
   id uuid default gen_random_uuid() primary key,
   page text not null default 'home',
@@ -107,6 +149,16 @@ create table if not exists public.page_sections (
 );
 
 alter table public.page_sections enable row level security;
+
+-- Service Categories
+create table if not exists public.service_categories (
+  id uuid default gen_random_uuid() primary key,
+  name text unique not null,
+  description text,
+  created_at timestamp with time zone default now()
+);
+
+alter table public.service_categories enable row level security;
 
 -- Services table
 create table if not exists public.services (
@@ -138,7 +190,7 @@ create table if not exists public.gallery_albums (
 
 alter table public.gallery_albums enable row level security;
 
--- Gallery Items Table
+-- Gallery Items Table (Photos with before/after capability)
 create table if not exists public.gallery_items (
   id uuid default gen_random_uuid() primary key,
   album_id uuid references public.gallery_albums(id) on delete set null,
@@ -195,7 +247,7 @@ create table if not exists public.service_requests (
   permission_to_contact boolean default true,
   uploaded_photos text[],
   status text check (status in ('new', 'reviewed', 'scheduled', 'declined', 'cancelled')) default 'new',
-  customer_id uuid references public.customers(id),
+  customer_id uuid references public.customers(id) on delete set null,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
@@ -224,7 +276,7 @@ create table if not exists public.appointments (
 
 alter table public.appointments enable row level security;
 
--- Jobs
+-- Jobs/Projects associated with Customers
 create table if not exists public.jobs (
   id uuid default gen_random_uuid() primary key,
   job_number serial,
@@ -252,6 +304,17 @@ create table if not exists public.jobs (
 );
 
 alter table public.jobs enable row level security;
+
+-- Job Assignments
+create table if not exists public.job_assignments (
+  id uuid default gen_random_uuid() primary key,
+  job_id uuid references public.jobs(id) on delete cascade not null,
+  admin_id uuid references public.profiles(id) on delete cascade not null,
+  assigned_at timestamp with time zone default now(),
+  unique (job_id, admin_id)
+);
+
+alter table public.job_assignments enable row level security;
 
 -- Notes system
 create table if not exists public.notes (
@@ -435,7 +498,7 @@ create table if not exists public.audit_logs (
 
 alter table public.audit_logs enable row level security;
 
--- fallback compatibility
+-- site_content (Legacy Site Editor fallback)
 create table if not exists public.site_content (
   id text primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
@@ -446,7 +509,10 @@ create table if not exists public.site_content (
 alter table public.site_content enable row level security;
 
 
--- Helper functions & RLS policies (identical to initial schema)
+-- ==========================================
+-- 5. SECURITY HELPER FUNCTIONS (SECURITY DEFINER)
+-- ==========================================
+
 create or replace function public.current_user_role()
 returns text
 language plpgsql security definer
@@ -496,100 +562,147 @@ language plpgsql security definer
 set search_path = public
 as $$
 begin
+  -- Global Admin gets access to all
   if (select role = 'global_admin' from public.profiles where id = auth.uid()) then
     return true;
   end if;
+
+  -- Admin gets access if assigned
   if (select role in ('admin', 'employee') from public.profiles where id = auth.uid()) then
     return exists (
       select 1 from public.customers
       where id = p_customer_id and (assigned_admin_id = auth.uid() or assigned_admin_id is null)
     );
   end if;
+
+  -- Customer gets access if matches their own customer profile
   return (select current_customer_id() = p_customer_id);
 end;
 $$;
 
--- RLS policies creation
-create policy "Anyone can read active profile info (for auth)" on public.profiles for select using (true);
+
+-- ==========================================
+-- 6. ROW LEVEL SECURITY POLICIES
+-- ==========================================
+
+-- PROFILES
+create policy "Anyone can read active profile info" on public.profiles for select using (true);
 create policy "Users can update their own profile fields" on public.profiles for update using (auth.uid() = id)
   with check ((role = (select role from public.profiles where id = auth.uid())) or (select role = 'global_admin' from public.profiles where id = auth.uid()));
 create policy "Global admin can do everything on profiles" on public.profiles for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
 
+-- CUSTOMERS
 create policy "Admins can view and edit customers" on public.customers for all using (select role in ('global_admin', 'admin', 'employee') from public.profiles where id = auth.uid());
 create policy "Customers can view own record" on public.customers for select using (email = (select email from public.profiles where id = auth.uid()));
 
+-- CUSTOMER PROPERTIES
 create policy "Admins can manage all properties" on public.customer_properties for all using (select role in ('global_admin', 'admin', 'employee') from public.profiles where id = auth.uid());
 create policy "Customers can view own properties" on public.customer_properties for select using (customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- COMPANY SETTINGS
 create policy "Anyone can read company settings" on public.company_settings for select using (true);
 create policy "Global admin can update company settings" on public.company_settings for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
 
+-- NAVIGATION ITEMS
 create policy "Anyone can read active navigation" on public.navigation_items for select using (is_active = true);
 create policy "Global admin can manage navigation" on public.navigation_items for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
 
+-- WEBSITE PAGES
+create policy "Anyone can read active website pages" on public.website_pages for select using (is_active = true);
+create policy "Global admin can manage website pages" on public.website_pages for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
+
+-- WEBSITE CONTENT BLOCKS
+create policy "Anyone can read active content blocks" on public.website_content_blocks for select using (true);
+create policy "Global admin can manage content blocks" on public.website_content_blocks for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
+
+-- PAGE SECTIONS
 create policy "Anyone can read active sections" on public.page_sections for select using (is_active = true);
 create policy "Global admin can manage page sections" on public.page_sections for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
 
+-- SERVICE CATEGORIES
+create policy "Anyone can read service categories" on public.service_categories for select using (true);
+create policy "Admins can manage service categories" on public.service_categories for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
+
+-- SERVICES
 create policy "Anyone can read published services" on public.services for select using (is_published = true or (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid()));
 create policy "Admins can manage services" on public.services for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
+-- GALLERY ALBUMS
 create policy "Anyone can read gallery albums" on public.gallery_albums for select using (true);
 create policy "Admins can manage gallery albums" on public.gallery_albums for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
+-- GALLERY ITEMS
 create policy "Anyone can read public published gallery items" on public.gallery_items for select
   using ((is_published = true and is_private = false) or (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid()) or (is_private = true and customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid()))));
 create policy "Admins can manage gallery items" on public.gallery_items for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
+-- CONTACT SUBMISSIONS
 create policy "Anyone can insert contact submissions" on public.contact_submissions for insert with check (true);
 create policy "Admins can view and edit submissions" on public.contact_submissions for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
+-- SERVICE REQUESTS
 create policy "Anyone can submit service requests" on public.service_requests for insert with check (true);
 create policy "Users can view own service requests" on public.service_requests for select using (email = (select email from public.profiles where id = auth.uid()) or customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 create policy "Admins can manage service requests" on public.service_requests for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
+-- APPOINTMENTS
 create policy "Admins can manage appointments" on public.appointments for all using (select role in ('global_admin', 'admin', 'employee') from public.profiles where id = auth.uid());
 create policy "Customers can read own appointments" on public.appointments for select using (customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- JOBS
 create policy "Admins can manage all jobs" on public.jobs for all using (select role in ('global_admin', 'admin', 'employee') from public.profiles where id = auth.uid());
 create policy "Customers can read own jobs" on public.jobs for select using (customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- NOTES
 create policy "Admins can manage all notes" on public.notes for all using (select role in ('global_admin', 'admin', 'employee') from public.profiles where id = auth.uid());
 create policy "Customers can view customer visible notes related to them" on public.notes for select using (visibility = 'customer_visible' and customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- ESTIMATES
 create policy "Admins can manage estimates" on public.estimates for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can view own estimates" on public.estimates for select using (customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- ESTIMATE ITEMS
 create policy "Admins can manage estimate items" on public.estimate_items for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can view own estimate items" on public.estimate_items for select using (exists (select 1 from public.estimates where estimates.id = estimate_items.estimate_id and estimates.customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid()))));
 
+-- INVOICES
 create policy "Admins can manage invoices" on public.invoices for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can view own invoices" on public.invoices for select using (customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- INVOICE ITEMS
 create policy "Admins can manage invoice items" on public.invoice_items for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can view own invoice items" on public.invoice_items for select using (exists (select 1 from public.invoices where invoices.id = invoice_items.invoice_id and invoices.customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid()))));
 
+-- PAYMENTS
 create policy "Admins can manage payments" on public.payments for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can read own payments" on public.payments for select using (customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- RECEIPTS
 create policy "Global admins can manage all receipts" on public.receipts for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
 create policy "Admins can manage receipts" on public.receipts for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can view visible receipts" on public.receipts for select using (is_visible_to_customer = true and customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- EXPENSES
 create policy "Only global admins can manage all expenses" on public.expenses for all using (select role = 'global_admin' from public.profiles where id = auth.uid());
 create policy "Admins can manage job-related expenses" on public.expenses for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
+-- DOCUMENTS
 create policy "Admins can manage documents" on public.documents for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 create policy "Customers can view shared documents" on public.documents for select using (is_private_customer = false and customer_id = (select id from public.customers where email = (select email from public.profiles where id = auth.uid())));
 
+-- NOTIFICATIONS
 create policy "Users can manage own notifications" on public.notifications for all using (recipient_id = auth.uid() or recipient_role = (select role from public.profiles where id = auth.uid()));
 
+-- AUDIT LOGS
 create policy "Global admins can view audit logs" on public.audit_logs for select using (select role = 'global_admin' from public.profiles where id = auth.uid());
 create policy "Global admins can create audit logs" on public.audit_logs for insert with check (select role = 'global_admin' from public.profiles where id = auth.uid());
 
-create policy "Anyone can read site content" on public.site_content for select using (true);
-create policy "Admins can manage site content" on public.site_content for all using (select role in ('global_admin', 'admin') from public.profiles where id = auth.uid());
 
--- Trigger signup helper
+-- ==========================================
+-- 7. TRIGGERS & FUNCTIONS
+-- ==========================================
+
+-- Function to handle new user signup automatically
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
@@ -599,20 +712,102 @@ begin
     new.email,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url',
-    'customer',
+    'customer', -- STRICTLY defaults to customer
     true
   );
   return new;
 end;
 $$ language plpgsql security definer;
 
-drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Seed fallback info
-insert into public.company_settings (id, company_name, phone, email, address, seo_title, seo_description)
-values ('default', 'Aquaman Plumbing & General Contracting', '1-800-555-PLUM', 'contact@aquamanservices.com', '123 Waterway Ln, Ocean City, CA 90210', 'Aquaman Plumbing & Contracting | Professional Plumbers', 'Expert plumbing, drain cleaning, kitchen & bathroom remodeling, and general contracting services.') on conflict (id) do nothing;
 
-insert into public.site_content (id, content) values ('homepage_hero', '{"title": "Premium Water & General Contracting Solutions", "subtitle": "Professional plumbing maintenance, drain cleaning, fixture installations, and full home remodeling. Fully insured experts at your service.", "ctaText": "Book a Service", "backgroundImage": ""}'::jsonb) on conflict (id) do nothing;
+-- ==========================================
+-- 8. INITIAL SEED DATA
+-- ==========================================
+
+-- Default Company Settings
+insert into public.company_settings (id, company_name, phone, email, address, seo_title, seo_description)
+values (
+  'default',
+  'Aquaman Plumbing & General Contracting',
+  '1-800-555-PLUM',
+  'contact@aquamanservices.com',
+  '123 Waterway Ln, Ocean City, CA 90210',
+  'Aquaman Plumbing & Contracting | Professional Plumbers',
+  'Expert plumbing, drain cleaning, kitchen & bathroom remodeling, and general contracting services.'
+) on conflict (id) do nothing;
+
+-- Default Website Pages
+insert into public.website_pages (slug, title)
+values
+('home', 'Home'),
+('services', 'Services'),
+('gallery', 'Gallery'),
+('about', 'About Us'),
+('contact', 'Contact Us'),
+('request-service', 'Book a Service')
+on conflict (slug) do nothing;
+
+-- Default Service Categories
+insert into public.service_categories (name, description)
+values
+('Plumbing', 'General residential and commercial plumbing repairs'),
+('Emergency Plumbing', 'Rapid response active leak, sewer, and hot water heater failures'),
+('Water Heaters', 'Traditional tank and modern tankless system installations & diagnostic'),
+('Drain and Sewer', 'Sewer camera inspections and high-pressure hydro-jetting cleanouts'),
+('Leak Detection', 'Precision sonic testing and active piping leak detection'),
+('Bathroom Remodeling', 'High-end tiling, bathtub refitting, and full bathroom remodels'),
+('Kitchen Remodeling', 'Custom cabinets, plumbing lines rerouting, and structural building'),
+('General Contracting', 'Structural renovations, drywall, painting, and construction'),
+('Residential Repairs', 'Quick home plumbing tuneups, faucet fittings, and toilet installs'),
+('Commercial Services', 'Heavy-duty commercial building pipe upgrades and grease trap maintenance')
+on conflict (name) do nothing;
+
+-- Default Services
+insert into public.services (title, slug, short_description, full_description, price_range, is_published, is_featured, sort_order, category)
+values
+('Emergency Plumbing Repair', 'emergency-plumbing-repair', 'Rapid response plumbing repairs for leaks, bursts, and backups.', 'When plumbing disaster strikes, our rapid-response team is ready. We handle emergency sewer line back-ups, burst pipes, major active leaks, and failing hot water heaters 24/7.', 'Starting at $150', true, true, 10, 'Emergency Plumbing'),
+('Water Heater Repair & Install', 'water-heater-repair-install', 'Professional traditional and tankless water heater upgrades.', 'Enjoy endless hot water and improved energy efficiency with our water heater replacement service. We install all major brands, including tankless systems and hybrid heat pump units.', 'Contact for Estimate', true, true, 20, 'Water Heaters'),
+('Drain Cleaning & Sewer Repair', 'drain-cleaning-sewer-repair', 'Advanced hydro-jetting and rooter service for clear lines.', 'Slow or clogged drains? We use high-definition drain cameras to pinpoint blockages and high-pressure hydro-jetting or motorized augers to clean sewer lines completely.', 'Starting at $99', true, false, 30, 'Drain and Sewer'),
+('Bathroom & Kitchen Remodeling', 'bathroom-kitchen-remodeling', 'Full-service kitchen and bath redesign, fixture upgrades, and plumbing.', 'Transform your kitchen or bathroom into a modern sanctuary. From custom tiling and cabinet installs to rerouting water supply, framing, and drywall, we manage the entire project.', 'Free Estimate', true, true, 40, 'Bathroom Remodeling')
+on conflict (slug) do nothing;
+
+-- Default Homepage content blocks
+insert into public.site_content (id, content) values (
+  'homepage_hero',
+  '{
+    "title": "Premium Water & General Contracting Solutions",
+    "subtitle": "Professional plumbing maintenance, drain cleaning, fixture installations, and full home remodeling. Fully insured experts at your service.",
+    "ctaText": "Book a Service",
+    "backgroundImage": ""
+  }'::jsonb
+) on conflict (id) do nothing;
+
+-- Insert navigation items
+insert into public.navigation_items (label, url, display_order, is_active)
+values
+('Services', '/services', 10, true),
+('Gallery', '/gallery', 20, true),
+('About', '/about', 30, true),
+('Contact', '/contact', 40, true)
+on conflict do nothing;
+
+-- Insert page sections for homepage system
+insert into public.page_sections (page, section_type, title, subtitle, body_content, button_label, button_url, display_order, is_active)
+values
+('home', 'hero', 'Premium Water & Contracting Solutions', 'Serving Ocean City & Surrounding Areas', 'We provide professional plumbing maintenance, fast leak repairs, and full-scale home construction, kitchen remodeling, and general contracting services.', 'Request Service', '/request-service', 10, true),
+('home', 'why_choose_us', 'Why Choose Aquaman Contracting', 'The Preferred Choice for Homeowners', 'Certified & fully insured specialists. Easy online scheduling & payment. Transparent pricing, no hidden fees.', 'Learn More', '/about', 20, true)
+on conflict do nothing;
+
+
+-- ==========================================
+-- 9. VERIFICATION QUERIES & TESTS
+-- ==========================================
+
+-- Test Queries to run in dashboard:
+-- select count(*) from public.profiles;
+-- select count(*) from public.services;
+-- select current_user_role();
