@@ -14,6 +14,14 @@ export default function Header() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navLinks, setNavLinks] = useState<any[]>([
+    { label: 'Home', href: '/' },
+    { label: 'Services', href: '/services' },
+    { label: 'Gallery', href: '/gallery' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Request Service', href: '/request-service' },
+  ])
 
   useEffect(() => {
     async function loadUser() {
@@ -33,6 +41,20 @@ export default function Header() {
         }
       } catch (err) {
         console.warn('Supabase auth getSession not available:', err)
+      }
+
+      // Load custom dynamic navigation links
+      try {
+        const { data: customNav } = await supabase
+          .from('navigation_items')
+          .select('label, url')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+        if (customNav && customNav.length > 0) {
+          setNavLinks(customNav.map((item: any) => ({ label: item.label, href: item.url })))
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic navigation items:', err)
       }
     }
     loadUser()
@@ -78,15 +100,6 @@ export default function Header() {
     router.push('/')
     router.refresh()
   }
-
-  const navLinks = [
-    { label: 'Home', href: '/' },
-    { label: 'Services', href: '/services' },
-    { label: 'Gallery', href: '/gallery' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
-    { label: 'Request Service', href: '/request-service' },
-  ]
 
   const isLoggedIn = !!user
   const isAdmin = profile?.role === 'admin' || profile?.role === 'global_admin' || profile?.role === 'employee'

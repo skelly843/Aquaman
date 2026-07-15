@@ -21,106 +21,123 @@ export default async function LandingPage() {
     .single()
 
   const hero = (heroData?.content as any) || {
-    title: 'Premium Water Solutions for Modern Homes',
-    subtitle: 'Expert maintenance, repair, and installation services at your fingertips. Manage your home services with our state-of-the-art portal.',
-    ctaText: 'Book a Service'
+    title: 'Premium Water & General Contracting Solutions',
+    subtitle: 'Professional plumbing maintenance, fast leak repairs, and full-scale home construction, kitchen remodeling, and general contracting services.',
+    ctaText: 'Request Service',
+    ctaUrl: '/request-service',
+    secondaryCtaText: 'View Our Work',
+    secondaryCtaUrl: '/gallery',
+    backgroundImage: ''
   }
 
   return (
     <div className="flex flex-col">
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-50">
+        <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-50 min-h-[600px] flex items-center">
+          {hero.backgroundImage && (
+            <div className="absolute inset-0 z-0">
+              <img src={hero.backgroundImage} alt="" className="w-full h-full object-cover brightness-[0.9] filter saturate-[1.05]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-transparent" />
+            </div>
+          )}
           <div className="container mx-auto px-6 relative z-10">
             <div className="max-w-3xl">
-              <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 leading-[1.1] mb-6 whitespace-pre-line">
-                {hero.title.split('Modern Homes')[0]}
-                <span className="text-blue-600">Modern Homes</span>
+              <h1 className={`text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.15] mb-6 tracking-tight ${hero.backgroundImage ? 'text-white' : 'text-slate-900'}`}>
+                {hero.title}
               </h1>
-              <p className="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl">
+              <p className={`text-lg md:text-xl mb-10 leading-relaxed max-w-2xl ${hero.backgroundImage ? 'text-slate-200' : 'text-slate-600'}`}>
                 {hero.subtitle}
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link
-                  href="/request-service"
-                  className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all flex items-center justify-center space-x-2"
+                  href={hero.ctaUrl || '/request-service'}
+                  className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20"
                 >
-                  <span>{hero.ctaText}</span>
+                  <span>{hero.ctaText || 'Request Service'}</span>
                   <ArrowRight size={20} />
                 </Link>
                 <Link
-                  href="/gallery"
-                  className="bg-white text-slate-900 border border-slate-200 px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-50 transition-all flex items-center justify-center"
+                  href={hero.secondaryCtaUrl || '/gallery'}
+                  className={`px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center border ${
+                    hero.backgroundImage
+                      ? 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                      : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50 shadow-sm'
+                  }`}
                 >
-                  View Our Work
+                  {hero.secondaryCtaText || 'View Our Work'}
                 </Link>
               </div>
             </div>
           </div>
-          <div className="absolute right-0 top-0 w-1/2 h-full bg-blue-600/5 -skew-x-12 transform translate-x-20 hidden lg:block" />
+          {!hero.backgroundImage && (
+            <div className="absolute right-0 top-0 w-1/2 h-full bg-blue-600/5 -skew-x-12 transform translate-x-20 hidden lg:block" />
+          )}
         </section>
 
         {/* Services Grid (Dynamic) */}
         <section id="services" className="py-24 bg-white">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl font-bold mb-4">Our Services</h2>
-              <p className="text-slate-600">Professional solutions for all your water and pool needs.</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Our Professional Services</h2>
+              <p className="text-slate-600 mt-3 text-lg font-medium">Expert plumbing maintenance, diagnostics, and general remodeling layouts.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {services?.map((service: Service) => (
-                <div key={service.id} className="group p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-blue-50 transition-all">
-                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors overflow-hidden">
-                    {service.featured_image ? (
-                      <img src={service.featured_image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <Droplet size={28} />
-                    )}
+                <div key={service.id} className="group p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-blue-50/50 transition-all flex flex-col justify-between h-full">
+                  <div>
+                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors overflow-hidden border border-blue-50">
+                      {service.featured_image ? (
+                        <img src={service.featured_image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Droplet size={28} />
+                      )}
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-3">{service.title}</h3>
+                    <p className="text-slate-600 text-sm leading-relaxed mb-6 line-clamp-3">{service.short_description}</p>
                   </div>
-                  <h3 className="text-xl font-bold mb-3">{service.title}</h3>
-                  <p className="text-slate-600 mb-6">{service.short_description}</p>
                   <Link
                     href={`/services/${service.slug}`}
-                    className="flex items-center text-blue-600 font-bold hover:space-x-2 transition-all"
+                    className="flex items-center text-blue-600 font-bold hover:space-x-2 transition-all mt-auto"
                   >
                     <span>Learn More</span>
                     <ChevronRight size={18} className="ml-1" />
                   </Link>
                 </div>
               ))}
-              {!services?.length && (
-                 <div className="col-span-full py-12 text-center text-slate-400 italic">
-                    Loading our latest services...
+              {(!services || services.length === 0) && (
+                 <div className="col-span-full py-16 text-center text-slate-400 italic font-medium">
+                    No active services published yet. Please log in as administrator to manage services.
                  </div>
               )}
             </div>
           </div>
         </section>
 
-        {/* Features */}
-        <section className="py-24 bg-slate-50">
+        {/* Features / Why Choose Us */}
+        <section className="py-24 bg-slate-50 border-t border-slate-100">
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-white shadow-sm text-blue-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-white shadow-md text-blue-600 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
                   <Shield size={32} />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Reliable Service</h3>
-                <p className="text-slate-600 px-4">Our technicians are certified and fully insured, ensuring your home is in safe hands.</p>
+                <h3 className="text-xl font-bold text-slate-900">Reliable Service</h3>
+                <p className="text-slate-600 px-4 text-sm leading-relaxed">Our technicians are certified and fully insured, ensuring your home is in safe hands.</p>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-white shadow-sm text-green-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-white shadow-md text-green-600 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
                   <Clock size={32} />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Easy Scheduling</h3>
-                <p className="text-slate-600 px-4">Book, reschedule, and track your appointments through our online portal.</p>
+                <h3 className="text-xl font-bold text-slate-900">Easy Scheduling</h3>
+                <p className="text-slate-600 px-4 text-sm leading-relaxed">Book, reschedule, and track your appointments through our online portal.</p>
               </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-white shadow-sm text-purple-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-white shadow-md text-purple-600 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
                   <Droplet size={32} />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Transparent Pricing</h3>
-                <p className="text-slate-600 px-4">Get clear invoices and pay securely online. No hidden fees, ever.</p>
+                <h3 className="text-xl font-bold text-slate-900">Transparent Pricing</h3>
+                <p className="text-slate-600 px-4 text-sm leading-relaxed">Get clear invoices and pay securely online. No hidden fees, ever.</p>
               </div>
             </div>
           </div>
