@@ -17,39 +17,52 @@ export default function Header() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(session.user)
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('id', session.user.id)
-          .single()
-        setProfile(prof)
-      } else {
-        setUser(null)
-        setProfile(null)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(session.user)
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', session.user.id)
+            .single()
+          setProfile(prof)
+        } else {
+          setUser(null)
+          setProfile(null)
+        }
+      } catch (err) {
+        console.warn('Supabase auth getSession not available:', err)
       }
     }
     loadUser()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      if (session?.user) {
-        setUser(session.user)
-        supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }: any) => setProfile(data))
-      } else {
-        setUser(null)
-        setProfile(null)
-      }
-    })
+    let subscription: any = null
+    try {
+      const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+        if (session?.user) {
+          setUser(session.user)
+          supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', session.user.id)
+            .single()
+            .then(({ data }: any) => setProfile(data))
+            .catch((err: any) => console.warn('Failed to load profile in header:', err))
+        } else {
+          setUser(null)
+          setProfile(null)
+        }
+      })
+      subscription = data?.subscription
+    } catch (err) {
+      console.warn('Supabase auth onAuthStateChange not available:', err)
+    }
 
     return () => {
-      subscription.unsubscribe()
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [supabase])
 
