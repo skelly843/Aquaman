@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import Link from 'next/link'
-import { Droplet, Phone, Mail, MapPin, Clock, ShieldAlert, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Phone, Mail, MapPin, Clock, ShieldAlert, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export default function PublicContactPage() {
   const supabase = createClient()
@@ -69,31 +68,6 @@ export default function PublicContactPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Header */}
-      <header className="px-6 lg:px-12 h-20 flex items-center justify-between border-b bg-white sticky top-0 z-50 shadow-sm">
-        <Link href="/" className="flex items-center space-x-2">
-          <Droplet className="text-blue-600" size={32} />
-          <span className="text-2xl font-bold text-slate-900 tracking-tight">Aquaman</span>
-        </Link>
-        <nav className="hidden md:flex space-x-8 text-sm font-medium text-slate-600">
-          <Link href="/services" className="hover:text-blue-600 transition-colors">Services</Link>
-          <Link href="/gallery" className="hover:text-blue-600 transition-colors">Gallery</Link>
-          <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
-          <Link href="/contact" className="text-blue-600 hover:text-blue-700 transition-colors">Contact</Link>
-        </nav>
-        <div className="flex items-center space-x-4">
-          <Link href="/login" className="text-sm font-semibold text-slate-700 hover:text-blue-600">
-            Log in
-          </Link>
-          <Link
-            href="/request-service"
-            className="bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
-          >
-            Book a Service
-          </Link>
-        </div>
-      </header>
-
       {/* Main Hero */}
       <div className="bg-slate-900 text-white py-16 px-6">
         <div className="max-w-6xl mx-auto text-center space-y-4">
@@ -249,22 +223,6 @@ export default function PublicContactPage() {
           </form>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12 px-6 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center space-x-2 mb-6 md:mb-0">
-            <Droplet className="text-blue-400" size={24} />
-            <span className="text-xl font-bold">Aquaman</span>
-          </div>
-          <div className="flex space-x-8 text-sm text-slate-400">
-            <Link href="/" className="hover:text-white transition-colors">Home</Link>
-            <Link href="/services" className="hover:text-white transition-colors">Services</Link>
-            <Link href="/gallery" className="hover:text-white transition-colors">Gallery</Link>
-            <Link href="/about" className="hover:text-white transition-colors">About</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

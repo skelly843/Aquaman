@@ -27,32 +27,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <header className="px-6 lg:px-12 h-20 flex items-center justify-between border-b bg-white sticky top-0 z-50">
-        <Link href="/" className="flex items-center space-x-2">
-          <Droplet className="text-blue-600" size={32} />
-          <span className="text-2xl font-bold text-slate-900 tracking-tight">Aquaman</span>
-        </Link>
-        <nav className="hidden md:flex space-x-8 text-sm font-medium text-slate-600">
-          <Link href="#services" className="hover:text-blue-600 transition-colors">Services</Link>
-          <Link href="/gallery" className="hover:text-blue-600 transition-colors">Gallery</Link>
-          <Link href="#about" className="hover:text-blue-600 transition-colors">About</Link>
-          <Link href="#contact" className="hover:text-blue-600 transition-colors">Contact</Link>
-        </nav>
-        <div className="flex items-center space-x-4">
-          <Link href="/login" className="text-sm font-semibold text-slate-700 hover:text-blue-600">
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition-all shadow-md shadow-blue-200"
-          >
-            Get Started
-          </Link>
-        </div>
-      </header>
-
+    <div className="flex flex-col">
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-50">
@@ -67,7 +42,7 @@ export default async function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link
-                  href="/signup"
+                  href="/request-service"
                   className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all flex items-center justify-center space-x-2"
                 >
                   <span>{hero.ctaText}</span>
@@ -97,7 +72,7 @@ export default async function LandingPage() {
                 <div key={service.id} className="group p-8 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-blue-50 transition-all">
                   <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors overflow-hidden">
                     {service.featured_image ? (
-                      <img src={service.featured_image} className="w-full h-full object-cover" />
+                      <img src={service.featured_image} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <Droplet size={28} />
                     )}
@@ -151,26 +126,6 @@ export default async function LandingPage() {
           </div>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-8 md:mb-0">
-              <Droplet className="text-blue-400" size={24} />
-              <span className="text-xl font-bold">Aquaman</span>
-            </div>
-            <div className="flex space-x-8 text-sm text-slate-400">
-              <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
-              <Link href="#" className="hover:text-white transition-colors">Contact Us</Link>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
-            © {new Date().getFullYear()} Aquaman Services Inc. All rights reserved.
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }
