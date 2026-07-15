@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { AlertCircle, Loader2, Lock, Mail, Droplet } from 'lucide-react'
 
 export default function LoginPage() {
@@ -24,6 +25,7 @@ export default function LoginPage() {
         throw new Error('Authentication service is unavailable.')
       }
 
+      // Exact signUp / signIn directives applied here
       const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -39,12 +41,11 @@ export default function LoginPage() {
           .eq('id', authData.user.id)
           .single()
 
-        if (profile?.role === 'admin') {
+        const role = profile?.role || 'customer'
+        if (role === 'admin' || role === 'global_admin' || role === 'employee') {
           router.push('/admin')
-        } else if (profile?.role === 'employee') {
-          router.push('/employee')
         } else {
-          router.push('/customer')
+          router.push('/portal')
         }
         router.refresh()
       }
@@ -86,7 +87,9 @@ export default function LoginPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="block text-sm font-bold text-slate-700">Password</label>
-              <a href="#" className="text-xs font-bold text-blue-600 hover:underline">Forgot password?</a>
+              <Link href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">
+                Forgot password?
+              </Link>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
@@ -103,7 +106,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-start space-x-2 animate-in fade-in slide-in-from-top-1">
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm flex items-start space-x-2">
               <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -126,9 +129,9 @@ export default function LoginPage() {
         <div className="mt-8 text-center pt-6 border-t border-slate-100">
           <p className="text-sm text-slate-600">
             Don't have an account?{' '}
-            <a href="/signup" className="font-bold text-blue-600 hover:underline">
+            <Link href="/signup" className="font-bold text-blue-600 hover:underline">
               Create one
-            </a>
+            </Link>
           </p>
         </div>
       </div>
@@ -140,5 +143,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
-import Link from 'next/link'

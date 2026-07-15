@@ -79,28 +79,28 @@ export async function updateSession(request: NextRequest) {
     const role = profile?.role || 'customer'
 
     // Block customers from admin/employee areas
-    if (url.pathname.startsWith('/admin') && role !== 'admin') {
+    if (url.pathname.startsWith('/admin') && role !== 'admin' && role !== 'global_admin') {
       if (url.pathname !== '/admin/login') {
-        url.pathname = '/customer'
+        url.pathname = '/portal'
         return NextResponse.redirect(url)
       }
     }
 
     if (url.pathname.startsWith('/employee') && role === 'customer') {
-      url.pathname = '/customer'
+      url.pathname = '/portal'
       return NextResponse.redirect(url)
     }
 
     // Redirect logged in users away from login/signup
     if (url.pathname === '/login' || url.pathname === '/signup' || url.pathname === '/admin/login') {
-        if (role === 'admin') url.pathname = '/admin'
+        if (role === 'admin' || role === 'global_admin') url.pathname = '/admin'
         else if (role === 'employee') url.pathname = '/employee'
-        else url.pathname = '/customer'
+        else url.pathname = '/portal'
         return NextResponse.redirect(url)
     }
   } else {
     // If not logged in and trying to access protected areas
-    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/customer') || url.pathname.startsWith('/employee') || url.pathname.startsWith('/dashboard')) {
+    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/portal') || url.pathname.startsWith('/employee') || url.pathname.startsWith('/dashboard')) {
        if (url.pathname !== '/admin/login') {
          url.pathname = '/login'
          return NextResponse.redirect(url)
