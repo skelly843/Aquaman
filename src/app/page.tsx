@@ -1,166 +1,262 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Droplet, Shield, Clock, ArrowRight } from 'lucide-react'
-import { createClient } from '@/utils/supabase/server'
-import { Database } from '@/types/database.types'
+import { useWebsiteBuilder, PageBlock } from '@/context/WebsiteBuilderContext'
+import { EditableBlockWrapper } from '@/components/admin/EditableBlockWrapper'
+import { InlineText } from '@/components/admin/InlineText'
+import { ImageCropperModal } from '@/components/admin/ImageCropperModal'
+import { createClient } from '@/utils/supabase/client'
+import {
+  Droplet,
+  Shield,
+  Clock,
+  ArrowRight,
+  ChevronRight,
+  Upload,
+  Plus,
+  Compass
+} from 'lucide-react'
 
-type Service = Database['public']['Tables']['services']['Row']
+export default function LandingPage() {
+  const supabase = createClient()
+  const {
+    editMode,
+    previewMode,
+    previewDevice,
+    blocks,
+    setBlocks,
+    setCurrentPage,
+    updateBlockData
+  } = useWebsiteBuilder()
 
-export default async function LandingPage() {
-  const supabase = await createClient()
+  const [activeServices, setActiveServices] = useState<any[]>([])
+  const [showCropperBlockId, setShowCropperBlockId] = useState<string | null>(null)
 
-  const { data: services } = await supabase
-    .from('services')
-    .select('*')
-    .eq('is_published', true)
-    .order('sort_order', { ascending: true })
+  // Register current page
+  useEffect(() => {
+    setCurrentPage('home')
+  }, [setCurrentPage])
 
-  const { data: heroData } = await supabase
-    .from('site_content')
-    .select('content')
-    .eq('id', 'homepage_hero')
-    .single()
+  // Load published services for the grid
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const { data } = await supabase
+          .from('services')
+          .select('*')
+          .eq('is_published', true)
+          .order('sort_order', { ascending: true })
+        if (data) {
+          setActiveServices(data)
+        }
+      } catch (err) {
+        console.warn('Failed to load active services:', err)
+      }
+    }
+    loadServices()
+  }, [supabase])
 
-  const hero = (heroData?.content as any) || {
-    title: 'Premium Water & General Contracting Solutions',
-    subtitle: 'Professional plumbing maintenance, fast leak repairs, and full-scale home construction, kitchen remodeling, and general contracting services.',
-    ctaText: 'Request Service',
-    ctaUrl: '/request-service',
-    secondaryCtaText: 'View Our Work',
-    secondaryCtaUrl: '/gallery',
-    backgroundImage: ''
+  // Responsive previews wrapper styling
+  const getResponsiveClass = () => {
+    if (!editMode || previewMode) return 'w-full'
+    if (previewDevice === 'mobile') return 'max-w-[375px] mx-auto border-4 border-slate-800 rounded-3xl shadow-2xl p-2 my-6 transition-all bg-white'
+    if (previewDevice === 'tablet') return 'max-w-[768px] mx-auto border-4 border-slate-800 rounded-3xl shadow-2xl p-2 my-6 transition-all bg-white'
+    return 'w-full'
   }
 
   return (
-    <div className="flex flex-col">
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-50 min-h-[600px] flex items-center">
-          {hero.backgroundImage && (
-            <div className="absolute inset-0 z-0">
-              <img src={hero.backgroundImage} alt="" className="w-full h-full object-cover brightness-[0.9] filter saturate-[1.05]" />
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-transparent" />
-            </div>
-          )}
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="max-w-3xl">
-              <h1 className={`text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.15] mb-6 tracking-tight ${hero.backgroundImage ? 'text-white' : 'text-slate-900'}`}>
-                {hero.title}
-              </h1>
-              <p className={`text-lg md:text-xl mb-10 leading-relaxed max-w-2xl ${hero.backgroundImage ? 'text-slate-200' : 'text-slate-600'}`}>
-                {hero.subtitle}
-              </p>
-              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                <Link
-                  href={hero.ctaUrl || '/request-service'}
-                  className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-blue-500/20"
-                >
-                  <span>{hero.ctaText || 'Request Service'}</span>
-                  <ArrowRight size={20} />
-                </Link>
-                <Link
-                  href={hero.secondaryCtaUrl || '/gallery'}
-                  className={`px-8 py-4 rounded-xl text-lg font-bold transition-all flex items-center justify-center border ${
-                    hero.backgroundImage
-                      ? 'bg-white/10 hover:bg-white/20 text-white border-white/20'
-                      : 'bg-white text-slate-900 border-slate-200 hover:bg-slate-50 shadow-sm'
-                  }`}
-                >
-                  {hero.secondaryCtaText || 'View Our Work'}
-                </Link>
-              </div>
-            </div>
-          </div>
-          {!hero.backgroundImage && (
-            <div className="absolute right-0 top-0 w-1/2 h-full bg-blue-600/5 -skew-x-12 transform translate-x-20 hidden lg:block" />
-          )}
-        </section>
+    <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
+      <div className={getResponsiveClass()}>
+        {blocks.map((block: PageBlock, index: number) => {
+          const data = block.draft_data || {}
 
-        {/* Services Grid (Dynamic) */}
-        <section id="services" className="py-24 bg-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Our Professional Services</h2>
-              <p className="text-slate-600 mt-3 text-lg font-medium">Expert plumbing maintenance, diagnostics, and general remodeling layouts.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {services?.map((service: Service) => (
-                <div key={service.id} className="group p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-blue-50/50 transition-all flex flex-col justify-between h-full">
-                  <div>
-                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors overflow-hidden border border-blue-50">
+          return (
+            <EditableBlockWrapper
+              key={block.id}
+              id={block.id}
+              index={index}
+              blockType={block.block_type}
+              isVisible={block.is_visible}
+            >
+              {/* HERO BLOCK TYPE */}
+              {block.block_type === 'hero' && (
+                <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-900 text-white min-h-[500px] flex items-center rounded-3xl">
+                  {data.backgroundImage && (
+                    <div className="absolute inset-0 z-0">
+                      <img src={data.backgroundImage} alt="" className="w-full h-full object-cover brightness-[0.6]" />
+                    </div>
+                  )}
+                  <div className="container mx-auto px-8 relative z-10 space-y-6">
+                    <div className="max-w-3xl space-y-4">
+                      <InlineText
+                        element="h1"
+                        value={data.title}
+                        onChange={(text) => updateBlockData(block.id, { title: text })}
+                        className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-white block focus:outline-none"
+                      />
+                      <InlineText
+                        element="p"
+                        value={data.subtitle}
+                        onChange={(text) => updateBlockData(block.id, { subtitle: text })}
+                        className="text-base md:text-lg text-slate-300 leading-relaxed max-w-2xl block"
+                      />
+                      <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                        <Link
+                          href={data.ctaUrl || '/request-service'}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3.5 rounded-xl font-bold text-sm inline-flex items-center justify-center space-x-1 shadow"
+                        >
+                          <InlineText
+                            element="span"
+                            value={data.ctaText || 'Get Started'}
+                            onChange={(text) => updateBlockData(block.id, { ctaText: text })}
+                          />
+                          <ArrowRight size={16} />
+                        </Link>
+
+                        <Link
+                          href={data.secondaryCtaUrl || '/gallery'}
+                          className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-6 py-3.5 rounded-xl font-bold text-sm inline-flex items-center justify-center"
+                        >
+                          <InlineText
+                            element="span"
+                            value={data.secondaryCtaText || 'View Our Work'}
+                            onChange={(text) => updateBlockData(block.id, { secondaryCtaText: text })}
+                          />
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Image cropper button */}
+                    {editMode && !previewMode && (
+                      <div className="pt-6 shrink-0 z-50 relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowCropperBlockId(block.id)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center space-x-1.5 shadow"
+                        >
+                          <Upload size={14} />
+                          <span>{data.backgroundImage ? 'Replace Background' : 'Upload Background'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {showCropperBlockId === block.id && (
+                    <ImageCropperModal
+                      bucket="public-site-images"
+                      onClose={() => setShowCropperBlockId(null)}
+                      onSave={(url) => {
+                        updateBlockData(block.id, { backgroundImage: url })
+                      }}
+                    />
+                  )}
+                </section>
+              )}
+
+              {/* FEATURES BLOCK TYPE */}
+              {block.block_type === 'features' && (
+                <section className="py-20 bg-white rounded-3xl border border-slate-100 shadow-sm p-8 space-y-12">
+                  <div className="text-center max-w-2xl mx-auto space-y-2">
+                    <InlineText
+                      element="h2"
+                      value={data.title || 'Why Choose Us'}
+                      onChange={(text) => updateBlockData(block.id, { title: text })}
+                      className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 block"
+                    />
+                    <InlineText
+                      element="p"
+                      value={data.subtitle || 'Our custom features'}
+                      onChange={(text) => updateBlockData(block.id, { subtitle: text })}
+                      className="text-slate-500 text-sm font-medium block"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {(data.items || []).map((item: any, idx: number) => (
+                      <div key={idx} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center border border-blue-50">
+                          <Compass size={24} />
+                        </div>
+                        <InlineText
+                          element="h4"
+                          value={item.title}
+                          onChange={(text) => {
+                            const newItems = [...data.items]
+                            newItems[idx].title = text
+                            updateBlockData(block.id, { items: newItems })
+                          }}
+                          className="font-bold text-slate-800 text-base block"
+                        />
+                        <InlineText
+                          element="p"
+                          value={item.desc}
+                          onChange={(text) => {
+                            const newItems = [...data.items]
+                            newItems[idx].desc = text
+                            updateBlockData(block.id, { items: newItems })
+                          }}
+                          className="text-slate-600 text-xs leading-relaxed block"
+                        />
+                      </div>
+                    ))}
+                    {editMode && !previewMode && (
+                      <div className="col-span-full flex justify-center pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentItems = data.items || []
+                            updateBlockData(block.id, {
+                              items: [...currentItems, { title: 'New Benefit Point', desc: 'Point details...' }]
+                            })
+                          }}
+                          className="px-4 py-2 bg-slate-900 text-white hover:bg-black font-bold text-xs rounded-xl flex items-center space-x-1"
+                        >
+                          <Plus size={12} />
+                          <span>Add Key Point</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+            </EditableBlockWrapper>
+          )
+        })}
+
+        {/* Dynamic services listing cards */}
+        <section className="py-16 px-6">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <h2 className="text-3xl font-extrabold text-slate-900 text-center tracking-tight">Our Services</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {activeServices.map((service) => (
+                <div key={service.id} className="bg-white border rounded-2xl p-6 shadow-sm space-y-4 flex flex-col justify-between hover:shadow-md transition-shadow">
+                  <div className="space-y-3">
+                    <div className="aspect-video w-full rounded-xl bg-slate-100 overflow-hidden border">
                       {service.featured_image ? (
-                        <img src={service.featured_image} alt="" className="w-full h-full object-cover" />
+                        <img src={service.featured_image} className="w-full h-full object-cover" />
                       ) : (
-                        <Droplet size={28} />
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <Droplet size={32} />
+                        </div>
                       )}
                     </div>
-                    <h3 className="text-xl font-bold text-slate-800 mb-3">{service.title}</h3>
-                    <p className="text-slate-600 text-sm leading-relaxed mb-6 line-clamp-3">{service.short_description}</p>
+                    <h3 className="font-bold text-lg text-slate-800">{service.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">{service.short_description}</p>
                   </div>
                   <Link
                     href={`/services/${service.slug}`}
-                    className="flex items-center text-blue-600 font-bold hover:space-x-2 transition-all mt-auto"
+                    className="text-blue-600 font-bold text-xs inline-flex items-center space-x-1 hover:underline pt-2"
                   >
-                    <span>Learn More</span>
-                    <ChevronRight size={18} className="ml-1" />
+                    <span>View Service details</span>
+                    <ChevronRight size={14} />
                   </Link>
                 </div>
               ))}
-              {(!services || services.length === 0) && (
-                 <div className="col-span-full py-16 text-center text-slate-400 italic font-medium">
-                    No active services published yet. Please log in as administrator to manage services.
-                 </div>
-              )}
             </div>
           </div>
         </section>
-
-        {/* Features / Why Choose Us */}
-        <section className="py-24 bg-slate-50 border-t border-slate-100">
-          <div className="container mx-auto px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-white shadow-md text-blue-600 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
-                  <Shield size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Reliable Service</h3>
-                <p className="text-slate-600 px-4 text-sm leading-relaxed">Our technicians are certified and fully insured, ensuring your home is in safe hands.</p>
-              </div>
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-white shadow-md text-green-600 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
-                  <Clock size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Easy Scheduling</h3>
-                <p className="text-slate-600 px-4 text-sm leading-relaxed">Book, reschedule, and track your appointments through our online portal.</p>
-              </div>
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-white shadow-md text-purple-600 rounded-2xl flex items-center justify-center mx-auto border border-slate-100">
-                  <Droplet size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Transparent Pricing</h3>
-                <p className="text-slate-600 px-4 text-sm leading-relaxed">Get clear invoices and pay securely online. No hidden fees, ever.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+      </div>
     </div>
-  )
-}
-
-function ChevronRight({ size, className }: { size: number, className: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m9 18 6-6-6-6"/>
-    </svg>
   )
 }
