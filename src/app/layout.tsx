@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { WebsiteBuilderProvider } from '@/context/WebsiteBuilderContext'
 import { VisualEditorToolbar } from '@/components/admin/VisualEditorToolbar'
+import GlobalEditorButton from '@/components/admin/GlobalEditorButton'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
           <Header />
           <div className="flex-1 flex flex-col">{children}</div>
           <Footer />
+          <GlobalEditorButton />
         </WebsiteBuilderProvider>
       </body>
     </html>

@@ -7,6 +7,7 @@ import { EditableBlockWrapper } from '@/components/admin/EditableBlockWrapper'
 import { InlineText } from '@/components/admin/InlineText'
 import { ImageCropperModal } from '@/components/admin/ImageCropperModal'
 import { createClient } from '@/utils/supabase/client'
+import { FALLBACK_PAGE_BLOCKS } from '@/utils/fallbackData'
 import {
   Droplet,
   Shield,
@@ -47,15 +48,24 @@ export default function LandingPage() {
           .select('*')
           .eq('is_published', true)
           .order('sort_order', { ascending: true })
-        if (data) {
+        if (data && data.length > 0) {
           setActiveServices(data)
+        } else {
+          // Fallback to importable list
+          const { FALLBACK_SERVICES } = await import('@/utils/fallbackData')
+          setActiveServices(FALLBACK_SERVICES)
         }
       } catch (err) {
         console.warn('Failed to load active services:', err)
+        const { FALLBACK_SERVICES } = await import('@/utils/fallbackData')
+        setActiveServices(FALLBACK_SERVICES)
       }
     }
     loadServices()
   }, [supabase])
+
+  // Use either the database-driven blocks or the fallback blocks
+  const activeBlocks = blocks && blocks.length > 0 ? blocks : (FALLBACK_PAGE_BLOCKS as unknown as PageBlock[])
 
   // Responsive previews wrapper styling
   const getResponsiveClass = () => {
@@ -68,7 +78,7 @@ export default function LandingPage() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
       <div className={getResponsiveClass()}>
-        {blocks.map((block: PageBlock, index: number) => {
+        {activeBlocks.map((block: PageBlock, index: number) => {
           const data = block.draft_data || {}
 
           return (
