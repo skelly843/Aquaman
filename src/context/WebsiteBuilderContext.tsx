@@ -78,36 +78,20 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
   const [undoStack, setUndoStack] = useState<PageBlock[][]>([])
   const [redoStack, setRedoStack] = useState<PageBlock[][]>([])
 
-  // Helper checking function
-  const hasBypass = () => {
-    if (typeof window === 'undefined') return false
-    const urlParams = new URLSearchParams(window.location.search)
-    return (
-      urlParams.get('role') === 'global_admin' ||
-      urlParams.get('admin') === 'true' ||
-      localStorage.getItem('simulate_global_admin') === 'true'
-    )
-  }
-
-  // Verify role with an active session change listener + initial check + simulated developer bypasses
+  // Verify role with an active session change listener + initial check using the strict DB profiles table
   useEffect(() => {
     async function checkUserRole(userId: string) {
       try {
-        if (hasBypass()) {
-          setIsGlobalAdmin(true)
-          return
-        }
-
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, is_active')
           .eq('id', userId)
           .single()
 
-        setIsGlobalAdmin(profile?.role === 'global_admin')
+        setIsGlobalAdmin(profile?.role === 'global_admin' && profile?.is_active === true)
       } catch (e) {
         console.warn('Error fetching role in context:', e)
-        setIsGlobalAdmin(hasBypass())
+        setIsGlobalAdmin(false)
       }
     }
 
@@ -117,16 +101,16 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
       if (session?.user) {
         checkUserRole(session.user.id)
       } else {
-        setIsGlobalAdmin(hasBypass())
+        setIsGlobalAdmin(false)
       }
     })
 
-    // Active real-time listener for Auth State changes with strict parameter typing
+    // Active real-time listener for Auth State changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       if (session?.user) {
         checkUserRole(session.user.id)
       } else {
-        setIsGlobalAdmin(hasBypass())
+        setIsGlobalAdmin(false)
       }
     })
 
@@ -134,17 +118,6 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
       subscription.unsubscribe()
     }
   }, [supabase])
-
-  // Explicitly watch for bypass params on URL change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      if (urlParams.get('role') === 'global_admin' || urlParams.get('admin') === 'true') {
-        localStorage.setItem('simulate_global_admin', 'true')
-        setIsGlobalAdmin(true)
-      }
-    }
-  }, [])
 
   // Fetch page blocks and styles
   useEffect(() => {

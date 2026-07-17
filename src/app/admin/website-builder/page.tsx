@@ -1,125 +1,149 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { getProfile } from '@/utils/supabase/getProfile'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/client'
 import {
   Settings,
-  Layers,
-  Eye,
+  Home,
+  Wrench,
+  Image as ImageIcon,
+  BookOpen,
+  Mail,
+  ArrowRight,
+  Sparkles,
+  FileEdit,
+  History,
   CheckCircle2,
-  Lock,
-  ArrowUpRight,
-  Loader2,
-  Monitor,
-  Type
+  FolderLock
 } from 'lucide-react'
 
-export default function WebsiteBuilderManager() {
-  const supabase = createClient()
-  const [pages, setPages] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+export default async function WebsiteBuilderDashboard() {
+  const profile = await getProfile()
 
-  useEffect(() => {
-    async function loadPages() {
-      try {
-        const { data: blocks } = await supabase
-          .from('page_blocks')
-          .select('page_id, updated_at')
-
-        // Group blocks by page_id to show status
-        const uniquePages = Array.from(new Set(blocks?.map((b: any) => b.page_id) || []))
-
-        const mapped = uniquePages.map((pageId: any) => {
-          const pageBlocks = blocks?.filter((b: any) => b.page_id === pageId) || []
-          const lastEdited = pageBlocks.reduce((max: any, b: any) => {
-            return b.updated_at > max ? b.updated_at : max
-          }, '')
-
-          return {
-            id: pageId,
-            name: pageId.charAt(0).toUpperCase() + pageId.slice(1) + ' Page',
-            slug: pageId === 'home' ? '/' : `/${pageId}`,
-            blocksCount: pageBlocks.length,
-            lastEdited: lastEdited ? new Date(lastEdited).toLocaleString() : 'N/A'
-          }
-        })
-
-        setPages(mapped)
-      } catch (err) {
-        console.warn('Failed to load page lists:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadPages()
-  }, [supabase])
-
-  if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
-    )
+  // Guard: Strict server-side validation.
+  if (!profile || profile.role !== 'global_admin' || !profile.is_active) {
+    return redirect('/login')
   }
 
-  return (
-    <div className="p-8 space-y-8 max-w-5xl">
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">WordPress-style Website Builder</h1>
-        <p className="text-slate-500 mt-1">Manage pages, launch direct on-page visual edit modes, and publish snapshots.</p>
-      </div>
+  const editorCards = [
+    {
+      title: 'Home Page Editor',
+      desc: 'Modify visual overlays, dynamic titles, hero backdrops, CTAs, benefits, and list featured services.',
+      slug: 'home',
+      icon: Home,
+      formId: 'home-editor-form',
+      publishMark: 'publish-page-button'
+    },
+    {
+      title: 'Services Page Editor',
+      desc: 'Add, structure, categorize, and upload descriptive details for plumbing and general contracting services.',
+      slug: 'services',
+      icon: Wrench,
+      formId: 'services-editor-form',
+      publishMark: 'add-service-button'
+    },
+    {
+      title: 'Gallery Page Editor',
+      desc: 'Upload structural before-and-after transformations, configure metadata, and select visible folders.',
+      slug: 'gallery',
+      icon: ImageIcon,
+      formId: 'gallery-editor-form',
+      publishMark: 'upload-gallery-button'
+    },
+    {
+      title: 'About Page Editor',
+      desc: 'Manage milestones, mission assertions, accredited trade certificates, and visible leader biographies.',
+      slug: 'about',
+      icon: BookOpen,
+      formId: 'about-editor-form',
+      publishMark: 'publish-page-button'
+    },
+    {
+      title: 'Contact Page Editor',
+      desc: 'Edit emergency help announcements, active cities, business dispatch hours, phone, and address lines.',
+      slug: 'contact',
+      icon: Mail,
+      formId: 'contact-editor-form',
+      publishMark: 'publish-page-button'
+    }
+  ]
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center space-x-2">
-          <Layers size={20} className="text-slate-400" />
-          <h2 className="font-bold text-slate-800">Available Public Pages</h2>
+  return (
+    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Settings className="text-blue-600 animate-spin-slow" />
+            <span>Website Builder Dashboard</span>
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Visual editor and structured form controller hub for Aquaman General Contracting.
+          </p>
         </div>
 
-        <div className="divide-y divide-slate-100">
-          {pages.map((p) => (
-            <div key={p.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-extrabold text-slate-900">{p.name}</h3>
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded-full flex items-center space-x-0.5">
-                    <CheckCircle2 size={10} />
-                    <span>Live published</span>
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 font-mono">Slug: {p.slug}</p>
-                <p className="text-xs text-slate-500 font-medium">Structure: {p.blocksCount} database blocks</p>
+        <div className="flex items-center space-x-3">
+          <Link
+            href="/"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all"
+          >
+            Go Visually Edit Pages
+          </Link>
+        </div>
+      </div>
+
+      {/* Grid of Pages */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {editorCards.map((card) => (
+          <div
+            key={card.slug}
+            className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-lg transition-all"
+          >
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                <card.icon size={24} />
               </div>
-
-              <div className="flex flex-col sm:items-end space-y-2">
-                <span className="text-[11px] text-slate-400 font-medium">Last edited: {p.lastEdited}</span>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={p.slug}
-                    className="flex items-center space-x-1 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
-                  >
-                    <Eye size={12} />
-                    <span>View Site</span>
-                  </Link>
-
-                  <Link
-                    href={`${p.slug}?edit=true`}
-                    className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow"
-                  >
-                    <Monitor size={12} />
-                    <span>Visual Edit</span>
-                    <ArrowUpRight size={12} />
-                  </Link>
-                </div>
-              </div>
+              <h3 className="font-bold text-slate-900 text-lg">{card.title}</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
             </div>
-          ))}
 
-          {pages.length === 0 && (
-            <div className="p-12 text-center text-slate-400 italic text-sm">
-              No page blocks found. Please run the SQL migration or seed default page_blocks rows.
+            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase tracking-wider">
+                Live & Syncing
+              </span>
+              <Link
+                href={`/admin/website-builder/${card.slug}`}
+                className="text-xs font-bold text-blue-600 hover:underline inline-flex items-center space-x-1"
+              >
+                <span>Open Form Editor</span>
+                <ArrowRight size={14} />
+              </Link>
             </div>
-          )}
+          </div>
+        ))}
+
+        {/* Global styles panel */}
+        <div className="bg-slate-900 text-white rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+          <div className="space-y-4">
+            <div className="w-12 h-12 bg-white/10 text-blue-400 rounded-xl flex items-center justify-center">
+              <Sparkles size={24} />
+            </div>
+            <h3 className="font-bold text-white text-lg">Global Style Branding</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Quickly rebrand primary palettes, container border-radii, logo assets, and layout typography rules.
+            </p>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+              Branding Synced
+            </span>
+            <Link
+              href="/"
+              className="text-xs font-bold text-blue-400 hover:underline inline-flex items-center space-x-1"
+            >
+              <span>Manage Globally</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
       </div>
     </div>

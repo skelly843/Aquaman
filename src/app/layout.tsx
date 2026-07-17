@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { WebsiteBuilderProvider } from '@/context/WebsiteBuilderContext'
 import { VisualEditorToolbar } from '@/components/admin/VisualEditorToolbar'
 import GlobalEditorButton from '@/components/admin/GlobalEditorButton'
+import { getProfile } from '@/utils/supabase/getProfile'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,11 +23,15 @@ export const metadata: Metadata = {
   description: "Expert plumbing, water heater installations, drain cleaning, and general contracting remodeling.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch real profile server-side safely
+  const profile = await getProfile()
+  const isGlobalAdmin = profile?.role === 'global_admin' && profile?.is_active === true
+
   return (
     <html
       lang="en"
@@ -34,11 +39,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-slate-50 pt-14">
         <WebsiteBuilderProvider>
-          <VisualEditorToolbar />
+          {isGlobalAdmin && <VisualEditorToolbar />}
           <Header />
           <div className="flex-1 flex flex-col">{children}</div>
           <Footer />
-          <GlobalEditorButton />
+          {isGlobalAdmin && <GlobalEditorButton />}
         </WebsiteBuilderProvider>
       </body>
     </html>

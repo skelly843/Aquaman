@@ -54,7 +54,10 @@ export const VisualEditorToolbar: React.FC = () => {
   if (!isGlobalAdmin) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] bg-slate-900 text-white shadow-xl px-6 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 select-none">
+    <div
+      data-testid="visual-editor-toolbar"
+      className="fixed top-0 left-0 right-0 z-[9999] bg-slate-900 text-white shadow-xl px-6 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 select-none"
+    >
       <div className="flex items-center space-x-3 shrink-0">
         <span className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-lg">
           <Settings size={18} />

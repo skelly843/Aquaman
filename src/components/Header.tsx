@@ -33,7 +33,7 @@ export default function Header() {
           setUser(session.user)
           const { data: prof } = await supabase
             .from('profiles')
-            .select('role, full_name')
+            .select('role, full_name, is_active')
             .eq('id', session.user.id)
             .single()
           setProfile(prof)
@@ -68,10 +68,10 @@ export default function Header() {
           setUser(session.user)
           supabase
             .from('profiles')
-            .select('role, full_name')
+            .select('role, full_name, is_active')
             .eq('id', session.user.id)
             .single()
-            .then(({ data }: any) => setProfile(data))
+            .then(({ data: prof }: any) => setProfile(prof))
             .catch((err: any) => console.warn('Failed to load profile in header:', err))
         } else {
           setUser(null)
@@ -104,9 +104,12 @@ export default function Header() {
   }
 
   const isLoggedIn = !!user
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'global_admin' || profile?.role === 'employee'
-  const dashboardLink = isAdmin ? '/admin' : '/portal'
-  const accountLink = isAdmin ? '/admin/settings' : '/portal/profile'
+  // STRICT RULE: Global admins and admins go strictly to /admin
+  const isGlobalAdminUser = profile?.role === 'global_admin' && profile?.is_active === true
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'employee' || isGlobalAdminUser
+
+  const dashboardLink = isGlobalAdminUser || isAdmin ? '/admin' : '/portal'
+  const accountLink = isGlobalAdminUser || isAdmin ? '/admin/settings' : '/portal/profile'
 
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm select-none">
@@ -137,7 +140,18 @@ export default function Header() {
 
         {/* Desktop Buttons */}
         <div className="hidden lg:flex items-center space-x-4">
-          {isGlobalAdmin && (
+          {isGlobalAdminUser && (
+            <Link
+              href="/admin/website-builder"
+              data-testid="website-builder-link"
+              className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1"
+            >
+              <Settings size={14} />
+              <span>Website Builder</span>
+            </Link>
+          )}
+
+          {isGlobalAdminUser && (
             <button
               onClick={() => setEditMode(!editMode)}
               className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5 shadow ${
@@ -218,7 +232,19 @@ export default function Header() {
           </nav>
 
           <div className="pt-4 border-t border-slate-50 flex flex-col space-y-3">
-            {isGlobalAdmin && (
+            {isGlobalAdminUser && (
+              <Link
+                href="/admin/website-builder"
+                onClick={() => setMenuOpen(false)}
+                data-testid="website-builder-link"
+                className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1"
+              >
+                <Settings size={14} />
+                <span>Website Builder</span>
+              </Link>
+            )}
+
+            {isGlobalAdminUser && (
               <button
                 onClick={() => {
                   setMenuOpen(false)
