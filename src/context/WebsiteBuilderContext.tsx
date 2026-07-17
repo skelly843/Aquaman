@@ -78,24 +78,44 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
   const [undoStack, setUndoStack] = useState<PageBlock[][]>([])
   const [redoStack, setRedoStack] = useState<PageBlock[][]>([])
 
-  // Verify role
+  // Verify role with an active session change listener + initial check
   useEffect(() => {
-    async function checkRole() {
+    async function checkUserRole(userId: string) {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
-          setIsGlobalAdmin(profile?.role === 'global_admin')
-        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single()
+        setIsGlobalAdmin(profile?.role === 'global_admin')
       } catch (e) {
-        console.warn('Role verification bypass during setup:', e)
+        console.warn('Error fetching role in context:', e)
+        setIsGlobalAdmin(false)
       }
     }
-    checkRole()
+
+    // Initial check on mount safely typed
+    supabase.auth.getSession().then(({ data }: any) => {
+      const session = data?.session
+      if (session?.user) {
+        checkUserRole(session.user.id)
+      } else {
+        setIsGlobalAdmin(false)
+      }
+    })
+
+    // Active real-time listener for Auth State changes with strict parameter typing
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      if (session?.user) {
+        checkUserRole(session.user.id)
+      } else {
+        setIsGlobalAdmin(false)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [supabase])
 
   // Fetch page blocks and styles
