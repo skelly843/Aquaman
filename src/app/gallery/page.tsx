@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
+import { useWebsiteBuilder, PageBlock } from '@/context/WebsiteBuilderContext'
+import { EditableBlockWrapper } from '@/components/admin/EditableBlockWrapper'
 import { InlineText } from '@/components/admin/InlineText'
 import { format } from 'date-fns'
 import { Plus, Trash2, Image as ImageIcon } from 'lucide-react'
 
 export default function GalleryPage() {
   const supabase = createClient()
-  const { editMode, previewMode, isGlobalAdmin } = useWebsiteBuilder()
+  const { editMode, previewMode, isGlobalAdmin, blocks, updateBlockData } = useWebsiteBuilder()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -123,6 +124,43 @@ export default function GalleryPage() {
       </div>
 
       <main className="flex-1 max-w-6xl mx-auto px-6 py-16 w-full space-y-8">
+        {/* Dynamic Page Blocks for Gallery */}
+        {blocks && blocks.length > 0 && (
+          <div className="space-y-8">
+            {blocks.map((block: PageBlock, index: number) => {
+              const data = (editMode && !previewMode)
+                ? (block.draft_data || {})
+                : (block.published_data || block.draft_data || {})
+
+              return (
+                <EditableBlockWrapper
+                  key={block.id}
+                  id={block.id}
+                  index={index}
+                  blockType={block.block_type}
+                  isVisible={block.is_visible}
+                >
+                  {(block.block_type === 'text_image' || block.block_type === 'text') && (
+                    <div className="p-8 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                      <InlineText
+                        element="h3"
+                        value={data.title || 'Section Subheading'}
+                        onChange={(text) => updateBlockData(block.id, { title: text })}
+                        className="text-2xl font-bold text-slate-900 block focus:outline-none"
+                      />
+                      <InlineText
+                        element="p"
+                        value={data.body_content || 'Paragraph content...'}
+                        onChange={(text) => updateBlockData(block.id, { body_content: text })}
+                        className="text-slate-600 text-sm leading-relaxed block focus:outline-none"
+                      />
+                    </div>
+                  )}
+                </EditableBlockWrapper>
+              )
+            })}
+          </div>
+        )}
         {/* Visual Edit controls */}
         {isEditingActive && (
           <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between shadow-sm">

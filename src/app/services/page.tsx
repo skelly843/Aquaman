@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
+import { useWebsiteBuilder, PageBlock } from '@/context/WebsiteBuilderContext'
+import { EditableBlockWrapper } from '@/components/admin/EditableBlockWrapper'
 import { InlineText } from '@/components/admin/InlineText'
 import { Droplet, ChevronRight, Plus, Trash2, Edit, Save, X } from 'lucide-react'
 
 export default function PublicServicesPage() {
   const supabase = createClient()
-  const { editMode, previewMode, isGlobalAdmin } = useWebsiteBuilder()
+  const { editMode, previewMode, isGlobalAdmin, blocks, updateBlockData } = useWebsiteBuilder()
   const [services, setServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -122,6 +123,44 @@ export default function PublicServicesPage() {
               Professional plumbing and general contracting solutions designed for residential & commercial needs.
             </p>
           </div>
+
+          {/* Dynamic page blocks for Services Page */}
+          {blocks && blocks.length > 0 && (
+            <div className="space-y-8">
+              {blocks.map((block: PageBlock, index: number) => {
+                const data = (editMode && !previewMode)
+                  ? (block.draft_data || {})
+                  : (block.published_data || block.draft_data || {})
+
+                return (
+                  <EditableBlockWrapper
+                    key={block.id}
+                    id={block.id}
+                    index={index}
+                    blockType={block.block_type}
+                    isVisible={block.is_visible}
+                  >
+                    {(block.block_type === 'text_image' || block.block_type === 'text') && (
+                      <div className="p-8 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                        <InlineText
+                          element="h3"
+                          value={data.title || 'Section Subheading'}
+                          onChange={(text) => updateBlockData(block.id, { title: text })}
+                          className="text-2xl font-bold text-slate-900 block focus:outline-none"
+                        />
+                        <InlineText
+                          element="p"
+                          value={data.body_content || 'Paragraph content...'}
+                          onChange={(text) => updateBlockData(block.id, { body_content: text })}
+                          className="text-slate-600 text-sm leading-relaxed block focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </EditableBlockWrapper>
+                )
+              })}
+            </div>
+          )}
 
           {/* Inline Edit Bar for global admin */}
           {isEditingActive && (

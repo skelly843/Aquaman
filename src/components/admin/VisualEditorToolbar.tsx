@@ -75,12 +75,12 @@ export const VisualEditorToolbar: React.FC = () => {
             setEditMode(!editMode)
             if (!editMode) setPreviewMode(false)
           }}
-          className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            editMode ? 'bg-blue-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+          className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            editMode ? 'bg-amber-600 text-white shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
           }`}
         >
           <Edit size={14} />
-          <span>{editMode ? 'Exit Edit Mode' : 'Enter Edit Mode'}</span>
+          <span>Toggle Page Editor [ {editMode ? 'ON' : 'OFF'} ]</span>
         </button>
 
         {editMode && (
@@ -169,21 +169,23 @@ export const VisualEditorToolbar: React.FC = () => {
           </button>
 
           <button
-            onClick={saveDraft}
+            onClick={publishLive}
             disabled={loading}
-            className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow"
+            className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow"
           >
-            {loading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
-            <span>Save Draft</span>
+            {loading ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
+            <span>Save Layout Changes</span>
           </button>
 
           <button
-            onClick={publishLive}
+            onClick={() => {
+              setEditMode(false)
+            }}
             disabled={loading}
-            className="flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow"
+            className="flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 transition-all"
           >
-            {loading ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
-            <span>Publish Live</span>
+            <X size={14} />
+            <span>Cancel</span>
           </button>
         </div>
       )}
