@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Droplet, Menu, X, User, LayoutDashboard, LogOut, Edit, Settings } from 'lucide-react'
+import { Droplet, Menu, X, User, LayoutDashboard, LogOut, Settings } from 'lucide-react'
 import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
 
 export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const { editMode, setEditMode, isGlobalAdmin } = useWebsiteBuilder()
+  const { isGlobalAdmin } = useWebsiteBuilder()
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -152,18 +152,6 @@ export default function Header() {
             </Link>
           )}
 
-          {isGlobalAdminUser && (
-            <button
-              onClick={() => setEditMode(!editMode)}
-              className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5 shadow ${
-                editMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              }`}
-            >
-              <Edit size={14} />
-              <span>{editMode ? 'Exit Edit Mode' : 'Edit Website'}</span>
-            </button>
-          )}
-
           {isLoggedIn ? (
             <>
               <Link
@@ -243,21 +231,6 @@ export default function Header() {
                 <Settings size={14} />
                 <span>Website Builder</span>
               </Link>
-            )}
-
-            {isGlobalAdminUser && (
-              <button
-                onClick={() => {
-                  setMenuOpen(false)
-                  setEditMode(!editMode)
-                }}
-                className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow ${
-                  editMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                }`}
-              >
-                <Edit size={14} />
-                <span>{editMode ? 'Exit Edit Mode' : 'Edit Website'}</span>
-              </button>
             )}
 
             {isLoggedIn ? (

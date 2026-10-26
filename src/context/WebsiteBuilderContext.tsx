@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -12,6 +12,12 @@ export interface PageBlock {
   is_visible: boolean
   draft_data: any
   published_data: any
+}
+
+interface ToastNotification {
+  id: string
+  type: 'success' | 'error' | 'info'
+  message: string
 }
 
 interface WebsiteBuilderContextType {
@@ -38,6 +44,10 @@ interface WebsiteBuilderContextType {
   setStyles: React.Dispatch<React.SetStateAction<any>>
   isGlobalAdmin: boolean
   loading: boolean
+  hasUnsavedChanges: boolean
+  toasts: ToastNotification[]
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void
+  removeToast: (id: string) => void
   saveDraft: () => Promise<void>
   publishLive: () => Promise<void>
   undo: () => void
@@ -45,6 +55,7 @@ interface WebsiteBuilderContextType {
   pushState: (newBlocks: PageBlock[]) => void
   updateBlockData: (id: string, updatedData: any) => void
   moveBlock: (index: number, direction: 'up' | 'down') => void
+  reorderBlocks: (fromIndex: number, toIndex: number) => void
   addBlock: (blockType: string) => void
   deleteBlock: (id: string) => void
   duplicateBlock: (id: string) => void
@@ -55,7 +66,10 @@ interface WebsiteBuilderContextType {
 
 const WebsiteBuilderContext = createContext<WebsiteBuilderContextType | undefined>(undefined)
 
-export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const WebsiteBuilderProvider: React.FC<{
+  children: React.ReactNode
+  initialIsGlobalAdmin?: boolean
+}> = ({ children, initialIsGlobalAdmin = false }) => {
   const supabase = createClient()
   const pathname = usePathname()
   const [editMode, setEditMode] = useState(false)
@@ -63,37 +77,66 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [currentPage, setCurrentPage] = useState('home')
 
-  // Automatically sync currentPage with active pathname route
-  useEffect(() => {
-    if (!pathname) return
-    let slug = 'home'
-    if (pathname === '/' || pathname === '') {
-      slug = 'home'
-    } else {
-      // e.g. /services -> services, /about -> about, /gallery -> gallery, /contact -> contact
-      slug = pathname.replace(/^\//, '').replace(/\//g, '_')
-    }
-    setCurrentPage(slug)
-  }, [pathname])
   const [blocks, setBlocks] = useState<PageBlock[]>([])
+  const [deletedBlockIds, setDeletedBlockIds] = useState<string[]>([])
   const [styles, setStyles] = useState({
-    primary_color: '#3b82f6',
-    secondary_color: '#1e293b',
-    accent_color: '#ef4444',
+    primary_color: '#2563eb',
+    secondary_color: '#0f172a',
+    accent_color: '#f59e0b',
     heading_font: 'Geist Sans',
     body_font: 'Geist Sans',
     border_radius: '0.75rem',
     logo_url: '',
     favicon_url: ''
   })
-  const [isGlobalAdmin, setIsGlobalAdmin] = useState(false)
+  const [isGlobalAdmin, setIsGlobalAdmin] = useState(initialIsGlobalAdmin)
   const [loading, setLoading] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [toasts, setToasts] = useState<ToastNotification[]>([])
 
-  // Undo/Redo stack state
+  // Stack state
   const [undoStack, setUndoStack] = useState<PageBlock[][]>([])
   const [redoStack, setRedoStack] = useState<PageBlock[][]>([])
 
-  // Verify role with an active session change listener + initial check using the strict DB profiles table
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = `toast-${Date.now()}-${Math.random()}`
+    setToasts(prev => [...prev, { id, type, message }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 5000)
+  }
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }
+
+  // Exact Route / Path to page_id Mapping
+  useEffect(() => {
+    if (!pathname) return
+    let slug = 'home'
+    if (pathname === '/' || pathname === '') {
+      slug = 'home'
+    } else if (pathname === '/request-service' || pathname === '/request-service/') {
+      slug = 'request-service'
+    } else {
+      slug = pathname.replace(/^\//, '').replace(/\/*$/, '').replace(/\//g, '_')
+    }
+    setCurrentPage(slug)
+  }, [pathname])
+
+  // Warn before leaving page if unsaved changes exist
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Check admin role client-side
   useEffect(() => {
     async function checkUserRole(sessionUser: any) {
       if (!sessionUser) {
@@ -113,28 +156,18 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
 
         setIsGlobalAdmin(activeRole === 'global_admin' && isActive)
       } catch (e) {
-        console.warn('Error fetching role in context:', e)
         const metaRole = sessionUser.user_metadata?.role || sessionUser.app_metadata?.role
         setIsGlobalAdmin(metaRole === 'global_admin')
       }
     }
 
-    let subscription: any = null
     try {
-      // Initial check on mount safely typed
       supabase.auth.getSession().then(({ data }: any) => {
-        const session = data?.session
-        if (session?.user) {
-          checkUserRole(session.user)
-        } else {
-          setIsGlobalAdmin(false)
+        if (data?.session?.user) {
+          checkUserRole(data.session.user)
         }
-      }).catch((err: any) => {
-        console.warn('Supabase session check not available:', err)
-        setIsGlobalAdmin(false)
       })
 
-      // Active real-time listener for Auth State changes
       const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
         if (session?.user) {
           checkUserRole(session.user)
@@ -142,60 +175,50 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
           setIsGlobalAdmin(false)
         }
       })
-      subscription = data?.subscription
-    } catch (err) {
-      console.warn('Supabase auth listener not available:', err)
-      setIsGlobalAdmin(false)
-    }
-
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe()
+      return () => {
+        data?.subscription?.unsubscribe()
       }
+    } catch (err) {
+      console.warn('Auth listener init error:', err)
     }
   }, [supabase])
 
-  // Fetch page blocks and styles
+  // Fetch Page Blocks
   useEffect(() => {
-    async function loadPageData() {
+    async function loadPageBlocks() {
       if (!currentPage) return
       try {
         setLoading(true)
-        const { data: blocksData } = await supabase
+        const { data: dbBlocks, error } = await supabase
           .from('page_blocks')
           .select('*')
           .eq('page_id', currentPage)
           .order('display_order', { ascending: true })
 
-        if (blocksData) {
-          setBlocks(blocksData as PageBlock[])
+        if (error) throw error
+
+        if (dbBlocks) {
+          setBlocks(dbBlocks as PageBlock[])
+          setDeletedBlockIds([])
           setUndoStack([])
           setRedoStack([])
+          setHasUnsavedChanges(false)
         }
-
-        const { data: styleData } = await supabase
-          .from('global_styles')
-          .select('*')
-          .eq('id', 'default')
-          .single()
-
-        if (styleData) {
-          setStyles(styleData)
-        }
-      } catch (err) {
-        console.warn('Error loading dynamic website builder contents:', err)
+      } catch (err: any) {
+        console.warn('Error loading page blocks:', err)
       } finally {
         setLoading(false)
       }
     }
-    loadPageData()
+
+    loadPageBlocks()
   }, [currentPage, supabase])
 
-  // Pushes blocks array onto Undo stack, clearing Redo stack
   const pushState = (newBlocks: PageBlock[]) => {
     setUndoStack(prev => [...prev, blocks])
     setRedoStack([])
     setBlocks(newBlocks)
+    setHasUnsavedChanges(true)
   }
 
   const undo = () => {
@@ -204,6 +227,7 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     setUndoStack(prevStack => prevStack.slice(0, -1))
     setRedoStack(prevRedo => [...prevRedo, blocks])
     setBlocks(prev)
+    setHasUnsavedChanges(true)
   }
 
   const redo = () => {
@@ -212,9 +236,9 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     setRedoStack(prevRedo => prevRedo.slice(0, -1))
     setUndoStack(prevUndo => [...prevUndo, blocks])
     setBlocks(next)
+    setHasUnsavedChanges(true)
   }
 
-  // Edit in-place
   const updateBlockData = (id: string, updatedData: any) => {
     const updated = blocks.map(b => {
       if (b.id === id) {
@@ -225,7 +249,6 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     pushState(updated)
   }
 
-  // Move up/down
   const moveBlock = (index: number, direction: 'up' | 'down') => {
     const targetIdx = direction === 'up' ? index - 1 : index + 1
     if (targetIdx < 0 || targetIdx >= blocks.length) return
@@ -235,7 +258,6 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     newBlocks[index] = newBlocks[targetIdx]
     newBlocks[targetIdx] = temp
 
-    // Reorder values
     const updated = newBlocks.map((b, idx) => ({
       ...b,
       display_order: (idx + 1) * 10
@@ -243,41 +265,68 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     pushState(updated)
   }
 
-  // Create section
+  const reorderBlocks = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= blocks.length || toIndex >= blocks.length) return
+    const newBlocks = [...blocks]
+    const [moved] = newBlocks.splice(fromIndex, 1)
+    newBlocks.splice(toIndex, 0, moved)
+
+    const updated = newBlocks.map((b, idx) => ({
+      ...b,
+      display_order: (idx + 1) * 10
+    }))
+    pushState(updated)
+  }
+
   const addBlock = (blockType: string) => {
     let defaultData: any = {}
     if (blockType === 'hero') {
       defaultData = {
-        title: 'New Headline Title',
+        title: 'New Section Header',
         subtitle: 'Add subtitle context...',
         ctaText: 'Get Started',
         ctaUrl: '#',
-        backgroundImage: ''
+        backgroundImage: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80'
       }
-    } else if (blockType === 'text_image' || blockType === 'text') {
+    } else if (blockType === 'text_image') {
       defaultData = {
         title: 'Section Heading',
-        body_content: 'Edit paragraph context...',
-        image_url: '',
+        body_content: 'Edit paragraph details...',
+        image_url: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80',
         layout: 'text_left'
       }
     } else if (blockType === 'features') {
       defaultData = {
-        title: 'Featured Key Points',
+        title: 'Key Features Grid',
         subtitle: 'Why choose our services',
-        items: [
-          { title: 'Feature Point', desc: 'Detail context...' }
-        ]
+        items: [{ title: 'Feature Point', desc: 'Detail context...' }]
       }
-    } else {
+    } else if (blockType === 'team') {
       defaultData = {
-        title: 'Section Custom Header',
-        body_content: 'Details go here...'
+        title: 'Meet Our Team',
+        subtitle: 'Dedicated specialists',
+        members: [{ name: 'Team Member', role: 'Specialist', photo: '', bio: 'Bio details...' }]
       }
+    } else if (blockType === 'cta_banner') {
+      defaultData = {
+        title: 'Ready to Start?',
+        subtitle: 'Contact us today for a free estimate.',
+        buttonText: 'Contact Us',
+        buttonUrl: '/contact'
+      }
+    } else if (blockType === 'image') {
+      defaultData = {
+        image_url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80',
+        caption: ''
+      }
+    } else if (blockType === 'spacer') {
+      defaultData = { height: '64px' }
+    } else {
+      defaultData = { title: 'New Section', subtitle: 'Add details...' }
     }
 
     const newBlock: PageBlock = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${Date.now()}-${Math.random()}`,
       page_id: currentPage,
       block_type: blockType,
       display_order: (blocks.length + 1) * 10,
@@ -288,18 +337,19 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     pushState([...blocks, newBlock])
   }
 
-  // Deleting blocks
   const deleteBlock = (id: string) => {
+    if (!id.startsWith('temp-')) {
+      setDeletedBlockIds(prev => [...prev, id])
+    }
     pushState(blocks.filter(b => b.id !== id))
   }
 
-  // Duplicating blocks
   const duplicateBlock = (id: string) => {
     const target = blocks.find(b => b.id === id)
     if (!target) return
     const duplicated: PageBlock = {
       ...target,
-      id: `temp-dup-${Date.now()}`,
+      id: `temp-dup-${Date.now()}-${Math.random()}`,
       display_order: target.display_order + 1
     }
     const idx = blocks.indexOf(target)
@@ -308,25 +358,30 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
     pushState(newBlocks.map((b, i) => ({ ...b, display_order: (i + 1) * 10 })))
   }
 
-  // Hide/Show toggles
   const toggleBlockVisibility = (id: string) => {
     pushState(blocks.map(b => (b.id === id ? { ...b, is_visible: !b.is_visible } : b)))
   }
 
-  // Save drafts
+  // Save Draft
   const saveDraft = async () => {
     try {
       setLoading(true)
-      // Save global branding style first
-      await supabase
-        .from('global_styles')
-        .upsert({ id: 'default', ...styles })
 
-      // Save each block
+      // 1. Execute DB deletions for deleted blocks
+      if (deletedBlockIds.length > 0) {
+        const { error: delErr } = await supabase
+          .from('page_blocks')
+          .delete()
+          .in('id', deletedBlockIds)
+        if (delErr) throw delErr
+        setDeletedBlockIds([])
+      }
+
+      // 2. Insert/Update remaining blocks
       for (const b of blocks) {
         const isNew = b.id.startsWith('temp-')
         const payload: any = {
-          page_id: b.page_id,
+          page_id: currentPage,
           block_type: b.block_type,
           display_order: b.display_order,
           is_visible: b.is_visible,
@@ -334,82 +389,99 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
         }
 
         if (isNew) {
-          await supabase.from('page_blocks').insert([payload])
+          const { error } = await supabase.from('page_blocks').insert([payload])
+          if (error) throw error
         } else {
-          await supabase.from('page_blocks').update(payload).eq('id', b.id)
+          const { error } = await supabase.from('page_blocks').update(payload).eq('id', b.id)
+          if (error) throw error
         }
       }
 
-      // Re-fetch to clear temp IDs
-      const { data: blocksData } = await supabase
+      // Re-fetch to normalize IDs
+      const { data: freshBlocks } = await supabase
         .from('page_blocks')
         .select('*')
         .eq('page_id', currentPage)
         .order('display_order', { ascending: true })
 
-      if (blocksData) {
-        setBlocks(blocksData as PageBlock[])
-      }
+      if (freshBlocks) setBlocks(freshBlocks as PageBlock[])
 
-      alert('Draft snapshot saved successfully!')
+      setHasUnsavedChanges(false)
+      showToast('Draft saved successfully!', 'success')
     } catch (e: any) {
-      alert(`Draft save failed: ${e.message}`)
+      console.error('Draft save error:', e)
+      showToast(`Save failed: ${e.message || 'Database error'}`, 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  // Publish Draft changes live
+  // Publish Live
   const publishLive = async () => {
     try {
       setLoading(true)
 
-      // Snapshot revision prior to publishing
-      await supabase
+      // Get user id for revision log
+      const { data: authData } = await supabase.auth.getUser()
+      const userId = authData?.user?.id || null
+
+      // 1. Delete removed blocks from database
+      if (deletedBlockIds.length > 0) {
+        const { error: delErr } = await supabase
+          .from('page_blocks')
+          .delete()
+          .in('id', deletedBlockIds)
+        if (delErr) throw delErr
+        setDeletedBlockIds([])
+      }
+
+      // 2. Write content_revisions snapshot
+      const { error: revErr } = await supabase
         .from('content_revisions')
         .insert([{
           page_id: currentPage,
-          blocks_snapshot: blocks
+          blocks_snapshot: blocks,
+          created_by: userId
         }])
+      if (revErr) {
+        console.warn('Content revision log notice:', revErr.message)
+      }
 
-      // Copy draft_data to published_data for all blocks
+      // 3. Upsert page_blocks with published_data = draft_data
       for (const b of blocks) {
         const isNew = b.id.startsWith('temp-')
         const payload: any = {
-          page_id: b.page_id,
+          page_id: currentPage,
           block_type: b.block_type,
           display_order: b.display_order,
           is_visible: b.is_visible,
           draft_data: b.draft_data,
-          published_data: b.draft_data // Set live published data matching draft data!
+          published_data: b.draft_data
         }
 
         if (isNew) {
-          await supabase.from('page_blocks').insert([payload])
+          const { error } = await supabase.from('page_blocks').insert([payload])
+          if (error) throw error
         } else {
-          await supabase.from('page_blocks').update(payload).eq('id', b.id)
+          const { error } = await supabase.from('page_blocks').update(payload).eq('id', b.id)
+          if (error) throw error
         }
       }
 
-      // Update global style
-      await supabase
-        .from('global_styles')
-        .upsert({ id: 'default', ...styles })
-
-      // Re-fetch to normalize
-      const { data: blocksData } = await supabase
+      // Re-fetch normalized blocks
+      const { data: freshBlocks } = await supabase
         .from('page_blocks')
         .select('*')
         .eq('page_id', currentPage)
         .order('display_order', { ascending: true })
 
-      if (blocksData) {
-        setBlocks(blocksData as PageBlock[])
-      }
+      if (freshBlocks) setBlocks(freshBlocks as PageBlock[])
 
-      alert('Changes published successfully to live public visitors!')
+      setHasUnsavedChanges(false)
+      showToast('Page published live to public visitors!', 'success')
     } catch (e: any) {
-      alert(`Publishing failed: ${e.message}`)
+      console.error('Publish error:', e)
+      showToast(`Publish failed: ${e.message || 'Database error'}`, 'error')
     } finally {
       setLoading(false)
     }
@@ -435,6 +507,10 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
         setStyles,
         isGlobalAdmin,
         loading,
+        hasUnsavedChanges,
+        toasts,
+        showToast,
+        removeToast,
         saveDraft,
         publishLive,
         undo,
@@ -442,6 +518,7 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
         pushState,
         updateBlockData,
         moveBlock,
+        reorderBlocks,
         addBlock,
         deleteBlock,
         duplicateBlock,
@@ -451,6 +528,25 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
       }}
     >
       {children}
+
+      {/* Inline Toast Notifications Container */}
+      <div className="fixed bottom-20 right-6 z-[100000] flex flex-col space-y-2 pointer-events-none">
+        {toasts.map(t => (
+          <div
+            key={t.id}
+            onClick={() => removeToast(t.id)}
+            className={`pointer-events-auto px-4 py-3 rounded-xl shadow-2xl text-xs font-bold text-white flex items-center space-x-2 border backdrop-blur transition-all animate-bounce-short cursor-pointer ${
+              t.type === 'success'
+                ? 'bg-emerald-600/90 border-emerald-400'
+                : t.type === 'error'
+                ? 'bg-red-600/90 border-red-400'
+                : 'bg-slate-800/90 border-slate-700'
+            }`}
+          >
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
     </WebsiteBuilderContext.Provider>
   )
 }
