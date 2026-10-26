@@ -79,7 +79,9 @@ export default function LandingPage() {
     <div className="flex-1 flex flex-col bg-slate-50 min-h-screen">
       <div className={getResponsiveClass()}>
         {activeBlocks.map((block: PageBlock, index: number) => {
-          const data = block.draft_data || {}
+          const data = (editMode && !previewMode)
+            ? (block.draft_data || {})
+            : (block.published_data || block.draft_data || {})
 
           return (
             <EditableBlockWrapper
@@ -161,6 +163,33 @@ export default function LandingPage() {
                       }}
                     />
                   )}
+                </section>
+              )}
+
+              {/* TEXT IMAGE BLOCK TYPE */}
+              {(block.block_type === 'text_image' || block.block_type === 'text') && (
+                <section className="py-16 px-8 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div className="space-y-4">
+                      <InlineText
+                        element="h2"
+                        value={data.title || 'Section Heading'}
+                        onChange={(text) => updateBlockData(block.id, { title: text })}
+                        className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 block focus:outline-none"
+                      />
+                      <InlineText
+                        element="p"
+                        value={data.body_content || 'Edit section paragraph verbiage here...'}
+                        onChange={(text) => updateBlockData(block.id, { body_content: text })}
+                        className="text-slate-600 text-sm leading-relaxed block focus:outline-none"
+                      />
+                    </div>
+                    {data.image_url && (
+                      <div className="aspect-video rounded-2xl overflow-hidden border bg-slate-100">
+                        <img src={data.image_url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
                 </section>
               )}
 

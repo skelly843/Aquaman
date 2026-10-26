@@ -64,14 +64,6 @@ export default async function WebsiteBuilderDashboard() {
       icon: Mail,
       formId: 'contact-editor-form',
       publishMark: 'publish-page-button'
-    },
-    {
-      title: 'Editorial Studio Editor',
-      desc: 'Intuitive drag-and-drop workspace with curated typography, custom image placements, and article layout controls.',
-      slug: '../../editorial',
-      icon: FileEdit,
-      formId: 'editorial-editor-form',
-      publishMark: 'publish-editorial-button'
     }
   ]
 

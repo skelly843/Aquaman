@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
 export interface PageBlock {
@@ -56,10 +57,24 @@ const WebsiteBuilderContext = createContext<WebsiteBuilderContextType | undefine
 
 export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const supabase = createClient()
+  const pathname = usePathname()
   const [editMode, setEditMode] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [currentPage, setCurrentPage] = useState('home')
+
+  // Automatically sync currentPage with active pathname route
+  useEffect(() => {
+    if (!pathname) return
+    let slug = 'home'
+    if (pathname === '/' || pathname === '') {
+      slug = 'home'
+    } else {
+      // e.g. /services -> services, /about -> about, /gallery -> gallery, /contact -> contact
+      slug = pathname.replace(/^\//, '').replace(/\//g, '_')
+    }
+    setCurrentPage(slug)
+  }, [pathname])
   const [blocks, setBlocks] = useState<PageBlock[]>([])
   const [styles, setStyles] = useState({
     primary_color: '#3b82f6',
@@ -95,27 +110,39 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
       }
     }
 
-    // Initial check on mount safely typed
-    supabase.auth.getSession().then(({ data }: any) => {
-      const session = data?.session
-      if (session?.user) {
-        checkUserRole(session.user.id)
-      } else {
+    let subscription: any = null
+    try {
+      // Initial check on mount safely typed
+      supabase.auth.getSession().then(({ data }: any) => {
+        const session = data?.session
+        if (session?.user) {
+          checkUserRole(session.user.id)
+        } else {
+          setIsGlobalAdmin(false)
+        }
+      }).catch((err: any) => {
+        console.warn('Supabase session check not available:', err)
         setIsGlobalAdmin(false)
-      }
-    })
+      })
 
-    // Active real-time listener for Auth State changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      if (session?.user) {
-        checkUserRole(session.user.id)
-      } else {
-        setIsGlobalAdmin(false)
-      }
-    })
+      // Active real-time listener for Auth State changes
+      const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+        if (session?.user) {
+          checkUserRole(session.user.id)
+        } else {
+          setIsGlobalAdmin(false)
+        }
+      })
+      subscription = data?.subscription
+    } catch (err) {
+      console.warn('Supabase auth listener not available:', err)
+      setIsGlobalAdmin(false)
+    }
 
     return () => {
-      subscription.unsubscribe()
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [supabase])
 

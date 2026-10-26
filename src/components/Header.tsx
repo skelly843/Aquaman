@@ -20,7 +20,6 @@ export default function Header() {
     { label: 'Home', href: '/' },
     { label: 'Services', href: '/services' },
     { label: 'Gallery', href: '/gallery' },
-    { label: 'Editorial', href: '/editorial' },
     { label: 'About', href: '/about' },
     { label: 'Contact', href: '/contact' },
     { label: 'Request Service', href: '/request-service' },
