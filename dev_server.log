@@ -2,15 +2,18 @@
 > my-app@0.1.0 dev
 > next dev
 
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
    ▲ Next.js 15.5.19
-   - Local:        http://localhost:3000
-   - Network:      http://192.168.0.2:3000
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.0.2:3001
+   - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 3.7s
+ ✓ Ready in 2.2s
  ○ Compiling /middleware ...
- ✓ Compiled /middleware in 515ms (169 modules)
- ○ Compiling / ...
- ✓ Compiled / in 5.4s (858 modules)
- GET / 200 in 7222ms
-[?25h
+ ✓ Compiled /middleware in 1498ms (169 modules)
+ ○ Compiling /editorial ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (102kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (250kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled /editorial in 7.4s (922 modules)
+ GET /editorial 200 in 8943ms
