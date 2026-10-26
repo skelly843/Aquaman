@@ -11,7 +11,7 @@ export default function GlobalEditorButton() {
   if (!isGlobalAdmin) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex items-center space-x-2">
+    <div className="fixed bottom-6 right-6 z-[99999] flex items-center space-x-2">
       <button
         type="button"
         onClick={() => setEditMode(!editMode)}

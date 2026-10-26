@@ -104,8 +104,9 @@ export default function Header() {
   }
 
   const isLoggedIn = !!user
-  // STRICT RULE: Global admins and admins go strictly to /admin
-  const isGlobalAdminUser = profile?.role === 'global_admin' && profile?.is_active === true
+  // STRICT RULE: Global admins go strictly to /admin
+  const metaRole = user?.user_metadata?.role || user?.app_metadata?.role
+  const isGlobalAdminUser = isGlobalAdmin || ((profile?.role === 'global_admin' || metaRole === 'global_admin') && profile?.is_active !== false)
   const isAdmin = profile?.role === 'admin' || profile?.role === 'employee' || isGlobalAdminUser
 
   const dashboardLink = isGlobalAdminUser || isAdmin ? '/admin' : '/portal'

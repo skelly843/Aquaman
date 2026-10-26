@@ -95,18 +95,27 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
 
   // Verify role with an active session change listener + initial check using the strict DB profiles table
   useEffect(() => {
-    async function checkUserRole(userId: string) {
+    async function checkUserRole(sessionUser: any) {
+      if (!sessionUser) {
+        setIsGlobalAdmin(false)
+        return
+      }
       try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role, is_active')
-          .eq('id', userId)
+          .eq('id', sessionUser.id)
           .single()
 
-        setIsGlobalAdmin(profile?.role === 'global_admin' && profile?.is_active === true)
+        const metaRole = sessionUser.user_metadata?.role || sessionUser.app_metadata?.role
+        const activeRole = profile?.role || metaRole
+        const isActive = profile?.is_active !== false
+
+        setIsGlobalAdmin(activeRole === 'global_admin' && isActive)
       } catch (e) {
         console.warn('Error fetching role in context:', e)
-        setIsGlobalAdmin(false)
+        const metaRole = sessionUser.user_metadata?.role || sessionUser.app_metadata?.role
+        setIsGlobalAdmin(metaRole === 'global_admin')
       }
     }
 
@@ -116,7 +125,7 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
       supabase.auth.getSession().then(({ data }: any) => {
         const session = data?.session
         if (session?.user) {
-          checkUserRole(session.user.id)
+          checkUserRole(session.user)
         } else {
           setIsGlobalAdmin(false)
         }
@@ -128,7 +137,7 @@ export const WebsiteBuilderProvider: React.FC<{ children: React.ReactNode }> = (
       // Active real-time listener for Auth State changes
       const { data } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
         if (session?.user) {
-          checkUserRole(session.user.id)
+          checkUserRole(session.user)
         } else {
           setIsGlobalAdmin(false)
         }
