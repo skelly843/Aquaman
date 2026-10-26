@@ -18,9 +18,15 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role === 'employee' || profile?.role === 'admin') {
+  const role = profile?.role || 'customer'
+
+  if (role === 'global_admin' || role === 'admin') {
+    return redirect('/admin')
+  }
+
+  if (role === 'employee') {
     return redirect('/employee')
   }
 
-  return redirect('/customer')
+  return redirect('/portal')
 }

@@ -4,16 +4,26 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Droplet, Menu, X, User, LayoutDashboard, LogOut } from 'lucide-react'
+import { Droplet, Menu, X, User, LayoutDashboard, LogOut, Edit, Settings } from 'lucide-react'
+import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
 
 export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const { editMode, setEditMode, isGlobalAdmin } = useWebsiteBuilder()
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navLinks, setNavLinks] = useState<any[]>([
+    { label: 'Home', href: '/' },
+    { label: 'Services', href: '/services' },
+    { label: 'Gallery', href: '/gallery' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'Request Service', href: '/request-service' },
+  ])
 
   useEffect(() => {
     async function loadUser() {
@@ -23,7 +33,7 @@ export default function Header() {
           setUser(session.user)
           const { data: prof } = await supabase
             .from('profiles')
-            .select('role, full_name')
+            .select('role, full_name, is_active')
             .eq('id', session.user.id)
             .single()
           setProfile(prof)
@@ -33,6 +43,20 @@ export default function Header() {
         }
       } catch (err) {
         console.warn('Supabase auth getSession not available:', err)
+      }
+
+      // Load custom dynamic navigation links
+      try {
+        const { data: customNav } = await supabase
+          .from('navigation_items')
+          .select('label, url')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+        if (customNav && customNav.length > 0) {
+          setNavLinks(customNav.map((item: any) => ({ label: item.label, href: item.url })))
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic navigation items:', err)
       }
     }
     loadUser()
@@ -44,10 +68,10 @@ export default function Header() {
           setUser(session.user)
           supabase
             .from('profiles')
-            .select('role, full_name')
+            .select('role, full_name, is_active')
             .eq('id', session.user.id)
             .single()
-            .then(({ data }: any) => setProfile(data))
+            .then(({ data: prof }: any) => setProfile(prof))
             .catch((err: any) => console.warn('Failed to load profile in header:', err))
         } else {
           setUser(null)
@@ -79,22 +103,16 @@ export default function Header() {
     router.refresh()
   }
 
-  const navLinks = [
-    { label: 'Home', href: '/' },
-    { label: 'Services', href: '/services' },
-    { label: 'Gallery', href: '/gallery' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' },
-    { label: 'Request Service', href: '/request-service' },
-  ]
-
   const isLoggedIn = !!user
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'global_admin' || profile?.role === 'employee'
-  const dashboardLink = isAdmin ? '/admin' : '/portal'
-  const accountLink = isAdmin ? '/admin/settings' : '/portal/profile'
+  // STRICT RULE: Global admins and admins go strictly to /admin
+  const isGlobalAdminUser = profile?.role === 'global_admin' && profile?.is_active === true
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'employee' || isGlobalAdminUser
+
+  const dashboardLink = isGlobalAdminUser || isAdmin ? '/admin' : '/portal'
+  const accountLink = isGlobalAdminUser || isAdmin ? '/admin/settings' : '/portal/profile'
 
   return (
-    <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm select-none">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 shrink-0">
@@ -122,6 +140,29 @@ export default function Header() {
 
         {/* Desktop Buttons */}
         <div className="hidden lg:flex items-center space-x-4">
+          {isGlobalAdminUser && (
+            <Link
+              href="/admin/website-builder"
+              data-testid="website-builder-link"
+              className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1"
+            >
+              <Settings size={14} />
+              <span>Website Builder</span>
+            </Link>
+          )}
+
+          {isGlobalAdminUser && (
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5 shadow ${
+                editMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              <Edit size={14} />
+              <span>{editMode ? 'Exit Edit Mode' : 'Edit Website'}</span>
+            </button>
+          )}
+
           {isLoggedIn ? (
             <>
               <Link
@@ -191,6 +232,33 @@ export default function Header() {
           </nav>
 
           <div className="pt-4 border-t border-slate-50 flex flex-col space-y-3">
+            {isGlobalAdminUser && (
+              <Link
+                href="/admin/website-builder"
+                onClick={() => setMenuOpen(false)}
+                data-testid="website-builder-link"
+                className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1"
+              >
+                <Settings size={14} />
+                <span>Website Builder</span>
+              </Link>
+            )}
+
+            {isGlobalAdminUser && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  setEditMode(!editMode)
+                }}
+                className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow ${
+                  editMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                }`}
+              >
+                <Edit size={14} />
+                <span>{editMode ? 'Exit Edit Mode' : 'Edit Website'}</span>
+              </button>
+            )}
+
             {isLoggedIn ? (
               <>
                 <Link
