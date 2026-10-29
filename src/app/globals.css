@@ -23,4 +23,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* Set by VisualEditorToolbar while edit mode is on, so the toolbar never covers the header */
+  padding-top: var(--editor-toolbar-h, 0px);
+}
+
+/* Placeholder for empty inline-editable text */
+.inline-text-editable:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.45;
+  font-style: italic;
+  pointer-events: none;
 }

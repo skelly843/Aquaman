@@ -1,119 +1,151 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
+import { getBlockDefinition } from '@/components/blocks/registry'
+import type { PageBlock } from '@/components/blocks/types'
 import {
   ArrowUp,
   ArrowDown,
   Copy,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  GripVertical
 } from 'lucide-react'
 
+const DRAG_TYPE = 'application/x-page-block-index'
+
 interface EditableBlockWrapperProps {
-  id: string
+  block: PageBlock
   index: number
-  blockType: string
-  isVisible: boolean
+  total: number
   children: React.ReactNode
 }
 
-export const EditableBlockWrapper: React.FC<EditableBlockWrapperProps> = ({
-  id,
-  index,
-  blockType,
-  isVisible,
-  children
-}) => {
-  const {
-    editMode,
-    previewMode,
-    moveBlock,
-    duplicateBlock,
-    deleteBlock,
-    toggleBlockVisibility,
-    blocks
-  } = useWebsiteBuilder()
+/** Edit-mode chrome around one section: drag handle, reorder, hide, duplicate, delete. */
+export const EditableBlockWrapper: React.FC<EditableBlockWrapperProps> = ({ block, index, total, children }) => {
+  const { moveBlock, moveBlockTo, duplicateBlock, deleteBlock, toggleBlockVisibility } = useWebsiteBuilder()
+  const [dropSide, setDropSide] = useState<'before' | 'after' | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const label = getBlockDefinition(block.block_type)?.label || block.block_type
 
-  if (!editMode || previewMode) {
-    // If not in edit mode or previewing live output, render plain children
-    if (!isVisible) return null
-    return <>{children}</>
+  const onDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData(DRAG_TYPE, String(index))
+    e.dataTransfer.effectAllowed = 'move'
+    const section = (e.currentTarget as HTMLElement).closest('[data-block-wrapper]') as HTMLElement | null
+    if (section) e.dataTransfer.setDragImage(section, 24, 24)
+    setDragging(true)
+  }
+
+  const onDragOver = (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes(DRAG_TYPE)) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setDropSide(e.clientY < rect.top + rect.height / 2 ? 'before' : 'after')
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData(DRAG_TYPE)
+    setDropSide(null)
+    if (raw === '') return
+    e.preventDefault()
+    const from = Number(raw)
+    moveBlockTo(from, dropSide === 'after' ? index + 1 : index)
   }
 
   return (
-    <div className={`relative border-2 border-dashed my-4 p-2 transition-all rounded-2xl group ${
-      isVisible
-        ? 'border-blue-400 hover:border-blue-600 bg-white/50'
-        : 'border-slate-300 bg-slate-100 opacity-60'
-    }`}>
-      {/* Floating control overlay */}
-      <div className="absolute top-2 right-2 z-50 bg-slate-900/90 text-white rounded-xl shadow-lg px-2.5 py-1.5 flex items-center space-x-2 border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity select-none text-xs">
-        <span className="font-extrabold text-[10px] uppercase text-blue-400 font-mono tracking-wider">{blockType}</span>
+    <div
+      id={`block-${block.id}`}
+      data-block-wrapper
+      onDragOver={onDragOver}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropSide(null)
+      }}
+      onDrop={onDrop}
+      className={`relative group outline-2 outline-dashed -outline-offset-2 transition-[outline-color,opacity] ${
+        block.is_visible ? 'outline-blue-300 hover:outline-blue-500' : 'outline-slate-300'
+      } ${dragging ? 'opacity-40' : ''}`}
+    >
+      {dropSide && (
+        <div
+          className={`absolute left-0 right-0 h-1.5 bg-blue-600 rounded-full z-[60] pointer-events-none ${
+            dropSide === 'before' ? '-top-1' : '-bottom-1'
+          }`}
+        />
+      )}
 
-        <div className="flex items-center space-x-1 border-l border-slate-700 pl-2">
-          {/* Reordering */}
+      {/* Section toolbar */}
+      <div className="absolute top-2 left-2 z-50 bg-slate-900/95 text-white rounded-xl shadow-lg px-1.5 py-1 flex items-center gap-1 border border-slate-700 select-none text-xs">
+        <span
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={() => {
+            setDragging(false)
+            setDropSide(null)
+          }}
+          className="p-1 rounded hover:bg-slate-700 cursor-grab active:cursor-grabbing text-slate-300"
+          title="Drag to reorder"
+        >
+          <GripVertical size={14} />
+        </span>
+        <span className="font-bold text-[10px] uppercase text-blue-300 tracking-wider pr-1">{label}</span>
+
+        <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1">
           <button
             type="button"
             onClick={() => moveBlock(index, 'up')}
             disabled={index === 0}
-            className="p-1 hover:bg-slate-800 rounded disabled:opacity-20 transition-all text-slate-300"
-            title="Move Section Up"
+            className="p-1 hover:bg-slate-700 rounded disabled:opacity-25 text-slate-300"
+            title="Move section up"
           >
-            <ArrowUp size={12} />
+            <ArrowUp size={13} />
           </button>
           <button
             type="button"
             onClick={() => moveBlock(index, 'down')}
-            disabled={index === blocks.length - 1}
-            className="p-1 hover:bg-slate-800 rounded disabled:opacity-20 transition-all text-slate-300"
-            title="Move Section Down"
+            disabled={index === total - 1}
+            className="p-1 hover:bg-slate-700 rounded disabled:opacity-25 text-slate-300"
+            title="Move section down"
           >
-            <ArrowDown size={12} />
+            <ArrowDown size={13} />
           </button>
-
-          {/* Visibility toggle */}
           <button
             type="button"
-            onClick={() => toggleBlockVisibility(id)}
-            className="p-1 hover:bg-slate-800 rounded transition-all text-slate-300"
-            title={isVisible ? 'Hide Section' : 'Show Section'}
+            onClick={() => toggleBlockVisibility(block.id)}
+            className="p-1 hover:bg-slate-700 rounded text-slate-300"
+            title={block.is_visible ? 'Hide section from visitors' : 'Show section to visitors'}
           >
-            {isVisible ? <Eye size={12} /> : <EyeOff size={12} className="text-amber-400" />}
+            {block.is_visible ? <Eye size={13} /> : <EyeOff size={13} className="text-amber-400" />}
           </button>
-
-          {/* Copy section */}
           <button
             type="button"
-            onClick={() => duplicateBlock(id)}
-            className="p-1 hover:bg-slate-800 rounded transition-all text-slate-300"
-            title="Duplicate Section"
+            onClick={() => duplicateBlock(block.id)}
+            className="p-1 hover:bg-slate-700 rounded text-slate-300"
+            title="Duplicate section"
           >
-            <Copy size={12} />
+            <Copy size={13} />
           </button>
-
-          {/* Delete section */}
           <button
             type="button"
             onClick={() => {
-              if (confirm('Are you sure you want to delete this section block?')) {
-                deleteBlock(id)
-              }
+              if (window.confirm(`Delete this ${label} section? You can undo until you save.`)) deleteBlock(block.id)
             }}
-            className="p-1 hover:bg-red-950/80 rounded transition-all text-red-400"
-            title="Delete Section"
+            className="p-1 hover:bg-red-600 rounded text-red-300 hover:text-white"
+            title="Delete section"
           >
-            <Trash2 size={12} />
+            <Trash2 size={13} />
           </button>
         </div>
       </div>
 
-      {/* Actual on-page block elements inside */}
-      <div className="relative">
-        {!isVisible && (
-          <div className="absolute inset-0 bg-slate-200/40 z-40 pointer-events-none rounded-xl flex items-center justify-center">
-            <span className="bg-slate-800 text-white text-[10px] font-bold uppercase px-2.5 py-1 rounded shadow-sm">Hidden Section</span>
+      <div className={`relative ${block.is_visible ? '' : 'opacity-50'}`}>
+        {!block.is_visible && (
+          <div className="absolute top-2 right-2 z-40 pointer-events-none">
+            <span className="bg-amber-500 text-white text-[10px] font-bold uppercase px-2.5 py-1 rounded shadow-sm">
+              Hidden from visitors
+            </span>
           </div>
         )}
         {children}
