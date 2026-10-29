@@ -37,13 +37,13 @@ export default async function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 pt-14">
-        <WebsiteBuilderProvider>
-          {isGlobalAdmin && <VisualEditorToolbar />}
+      <body className="min-h-full flex flex-col bg-slate-50">
+        <WebsiteBuilderProvider initialIsGlobalAdmin={isGlobalAdmin}>
+          <VisualEditorToolbar />
           <Header />
           <div className="flex-1 flex flex-col">{children}</div>
           <Footer />
-          {isGlobalAdmin && <GlobalEditorButton />}
+          <GlobalEditorButton />
         </WebsiteBuilderProvider>
       </body>
     </html>

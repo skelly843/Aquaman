@@ -67,7 +67,6 @@ export default async function AdminLayout({
     { label: 'Services Manager', href: '/admin/services', icon: Wrench },
     { label: 'Gallery Manager', href: '/admin/gallery', icon: ImageIcon },
     { label: 'Website Editor', href: '/admin/content', icon: Monitor },
-    { label: 'Editorial Editor', href: '/editorial', icon: FileText },
   ]
 
   // Only global_admin can access Admin User Accounts and Audit logs

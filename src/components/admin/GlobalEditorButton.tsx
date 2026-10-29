@@ -11,14 +11,18 @@ export default function GlobalEditorButton() {
   if (!isGlobalAdmin) return null
 
   return (
-    <button
-      type="button"
-      onClick={() => setEditMode(!editMode)}
-      data-testid="global-editor-button"
-      className="fixed bottom-6 right-6 z-[9999] rounded-full bg-blue-600 hover:bg-blue-700 px-6 py-4 font-bold text-white shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center space-x-2 shrink-0 border border-blue-500/30"
-    >
-      <Edit3 size={18} />
-      <span>{editMode ? 'Exit Website Builder' : 'Edit This Page'}</span>
-    </button>
+    <div className="fixed bottom-6 right-6 z-[99999] flex items-center space-x-2">
+      <button
+        type="button"
+        onClick={() => setEditMode(!editMode)}
+        data-testid="global-editor-button"
+        className={`rounded-full px-6 py-4 font-black text-sm text-white shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center space-x-2 shrink-0 border border-white/20 ${
+          editMode ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'
+        }`}
+      >
+        <Edit3 size={18} />
+        <span>Toggle Page Editor [ {editMode ? 'ON' : 'OFF'} ]</span>
+      </button>
+    </div>
   )
 }
