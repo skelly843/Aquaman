@@ -1,3 +1,4 @@
+import { SiteName } from '@/components/SiteTheme'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import {
@@ -90,7 +91,7 @@ export default async function CustomerDashboard() {
       <header className="px-6 lg:px-12 h-20 flex items-center justify-between border-b bg-white sticky top-0 z-50 shadow-sm">
         <Link href="/" className="flex items-center space-x-2">
           <Droplet className="text-blue-600" size={32} />
-          <span className="text-2xl font-bold text-slate-900 tracking-tight">Aquaman Client Portal</span>
+          <span className="text-2xl font-bold text-slate-900 tracking-tight"><SiteName suffix=" Client Portal" /></span>
         </Link>
         <div className="flex items-center space-x-4">
           <span className="text-sm font-bold text-slate-700">Hello, {profile?.full_name || 'Client'}</span>

@@ -7,19 +7,9 @@ import { pathToPageId, type PageId } from '@/utils/pages'
 import { getBlockDefinition } from '@/components/blocks/registry'
 import type { PageBlock } from '@/components/blocks/types'
 import { ToastViewport, type Toast } from '@/components/admin/ToastViewport'
+import { DEFAULT_BRAND, type SiteBrand } from '@/utils/siteTheme'
 
 export type { PageBlock } from '@/components/blocks/types'
-
-type Styles = {
-  primary_color: string
-  secondary_color: string
-  accent_color: string
-  heading_font: string
-  body_font: string
-  border_radius: string
-  logo_url: string
-  favicon_url: string
-}
 
 interface History {
   past: PageBlock[][]
@@ -41,8 +31,12 @@ interface WebsiteBuilderContextType {
   loadedPage: PageId | null
   registerPage: (pageId: PageId, blocks: PageBlock[], persisted: boolean) => void
   blocks: PageBlock[]
-  styles: Styles
-  setStyles: (styles: Styles) => void
+  /** site-wide brand & theme; edits preview live until saved */
+  styles: SiteBrand
+  setStyles: React.Dispatch<React.SetStateAction<SiteBrand>>
+  brandDirty: boolean
+  saveBrand: () => Promise<void>
+  resetBrand: () => void
   isGlobalAdmin: boolean
   saving: boolean
   isDirty: boolean
@@ -66,17 +60,6 @@ const WebsiteBuilderContext = createContext<WebsiteBuilderContextType | undefine
 
 const HISTORY_LIMIT = 100
 
-const DEFAULT_STYLES: Styles = {
-  primary_color: '#3b82f6',
-  secondary_color: '#1e293b',
-  accent_color: '#ef4444',
-  heading_font: 'Geist Sans',
-  body_font: 'Geist Sans',
-  border_radius: '0.75rem',
-  logo_url: '',
-  favicon_url: ''
-}
-
 const serialize = (blocks: PageBlock[]) =>
   JSON.stringify(
     blocks.map((b) => [b.id, b.block_type, b.display_order, b.is_visible, b.draft_data])
@@ -92,8 +75,8 @@ const newId = () =>
 function describeError(error: any): string {
   const message = error?.message || String(error)
   const code = error?.code
-  if (code === 'PGRST205' || code === '42P01' || /does not exist|schema cache/i.test(message)) {
-    return `${message} — run supabase/migrations/003_page_editor.sql in the Supabase SQL Editor.`
+  if (code === 'PGRST205' || code === 'PGRST204' || code === '42P01' || code === '42703' || /does not exist|schema cache/i.test(message)) {
+    return `${message} — run supabase/migrations/003_page_editor.sql and 004_site_branding.sql in the Supabase SQL Editor.`
   }
   if (code === '42501' || /row-level security|permission denied/i.test(message)) {
     return `${message} — your profile must be an active global_admin, and migration 003 must be applied.`
@@ -107,7 +90,8 @@ const RLS_SILENT_BLOCK =
 export const WebsiteBuilderProvider: React.FC<{
   children: React.ReactNode
   initialIsGlobalAdmin?: boolean
-}> = ({ children, initialIsGlobalAdmin = false }) => {
+  initialBrand?: SiteBrand
+}> = ({ children, initialIsGlobalAdmin = false, initialBrand = DEFAULT_BRAND }) => {
   const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
   const pathname = usePathname()
@@ -117,8 +101,8 @@ export const WebsiteBuilderProvider: React.FC<{
   const [editModeRaw, setEditModeRaw] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
-  const [styles, setStylesState] = useState<Styles>(DEFAULT_STYLES)
-  const [stylesDirty, setStylesDirty] = useState(false)
+  const [savedBrand, setSavedBrand] = useState<SiteBrand>(initialBrand)
+  const [styles, setStylesState] = useState<SiteBrand>(initialBrand)
   const [saving, setSaving] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -132,7 +116,8 @@ export const WebsiteBuilderProvider: React.FC<{
 
   const editMode = isGlobalAdmin && editModeRaw && currentPage !== null
   const blocks = history.present
-  const isDirty = loadedPage !== null && (serialize(blocks) !== savedSnapshot || stylesDirty)
+  const stylesDirty = JSON.stringify(styles) !== JSON.stringify(savedBrand)
+  const isDirty = (loadedPage !== null && serialize(blocks) !== savedSnapshot) || stylesDirty
 
   // ---------- toasts ----------
   const showToast = useCallback((kind: Toast['kind'], message: string) => {
@@ -171,24 +156,36 @@ export const WebsiteBuilderProvider: React.FC<{
     return () => subscription?.unsubscribe()
   }, [supabase])
 
-  // ---------- global styles (admins only need them) ----------
-  useEffect(() => {
-    if (!isGlobalAdmin) return
-    async function loadStyles() {
-      try {
-        const { data } = await supabase.from('global_styles').select('*').eq('id', 'default').maybeSingle()
-        if (data) setStylesState({ ...DEFAULT_STYLES, ...data })
-      } catch (err) {
-        console.warn('Failed to load global styles:', err)
-      }
-    }
-    loadStyles()
-  }, [isGlobalAdmin, supabase])
+  // ---------- brand & theme (loaded on the server; edits preview live until saved) ----------
+  const setStyles = setStylesState
+  const resetBrand = useCallback(() => setStylesState(savedBrand), [savedBrand])
 
-  const setStyles = useCallback((next: Styles) => {
-    setStylesState(next)
-    setStylesDirty(true)
-  }, [])
+  const writeBrand = useCallback(
+    async (brand: SiteBrand) => {
+      const { data, error } = await supabase
+        .from('global_styles')
+        .upsert({ id: 'default', ...brand, updated_at: new Date().toISOString() })
+        .select('id')
+      if (error) throw error
+      if (!data || data.length === 0) throw new Error(RLS_SILENT_BLOCK)
+      setSavedBrand(brand)
+    },
+    [supabase]
+  )
+
+  const saveBrand = useCallback(async () => {
+    if (saving) return
+    setSaving(true)
+    try {
+      await writeBrand(styles)
+      showToast('success', 'Brand & theme saved — visitors now see it.')
+      router.refresh()
+    } catch (err: any) {
+      showToast('error', `Saving brand failed: ${describeError(err)}`)
+    } finally {
+      setSaving(false)
+    }
+  }, [saving, writeBrand, styles, showToast, router])
 
   // ---------- page registration ----------
   const registerPage = useCallback((pageId: PageId, initial: PageBlock[], persisted: boolean) => {
@@ -380,11 +377,7 @@ export const WebsiteBuilderProvider: React.FC<{
           if (error) throw error
         }
 
-        if (stylesDirty) {
-          const { error } = await supabase.from('global_styles').upsert({ id: 'default', ...styles, updated_at: now })
-          if (error) throw error
-          setStylesDirty(false)
-        }
+        if (stylesDirty) await writeBrand(styles)
 
         // Keep undo/redo usable: swap temporary ids for the real ones everywhere in history
         const remap = (bs: PageBlock[]) =>
@@ -401,7 +394,7 @@ export const WebsiteBuilderProvider: React.FC<{
         setSaving(false)
       }
     },
-    [loadedPage, saving, supabase, stylesDirty, styles, showToast, router]
+    [loadedPage, saving, supabase, stylesDirty, styles, writeBrand, showToast, router]
   )
 
   const saveDraft = useCallback(() => persist(false), [persist])
@@ -472,6 +465,9 @@ export const WebsiteBuilderProvider: React.FC<{
         blocks,
         styles,
         setStyles,
+        brandDirty: stylesDirty,
+        saveBrand,
+        resetBrand,
         isGlobalAdmin,
         saving,
         isDirty,

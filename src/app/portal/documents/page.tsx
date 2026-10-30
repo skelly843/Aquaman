@@ -1,5 +1,6 @@
 'use client'
 
+import { SiteName } from '@/components/SiteTheme'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
@@ -42,7 +43,7 @@ export default function CustomerDocumentsPage() {
       <header className="px-6 lg:px-12 h-20 flex items-center justify-between border-b bg-white sticky top-0 z-50">
         <Link href="/" className="flex items-center space-x-2">
           <Droplet className="text-blue-600" size={32} />
-          <span className="text-2xl font-bold text-slate-900">Aquaman Client Portal</span>
+          <span className="text-2xl font-bold text-slate-900"><SiteName suffix=" Client Portal" /></span>
         </Link>
         <Link href="/portal" className="text-sm font-bold text-blue-600 hover:underline">
           Portal Dashboard

@@ -1,5 +1,6 @@
 'use client'
 
+import { SiteName } from '@/components/SiteTheme'
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
@@ -74,7 +75,7 @@ export default function SignupPage() {
     <div className="flex flex-col items-center justify-center min-h-screen py-12 bg-slate-50 px-6">
       <div className="p-10 bg-white shadow-xl rounded-2xl w-full max-w-md border border-slate-200">
         <h1 className="text-3xl font-extrabold mb-2 text-center text-slate-900 tracking-tight">Create Account</h1>
-        <p className="text-slate-500 text-center mb-8">Join the Aquaman service portal</p>
+        <p className="text-slate-500 text-center mb-8">Join the <SiteName /> service portal</p>
 
         <form onSubmit={handleSignup} className="space-y-5">
           <div className="space-y-1.5">

@@ -4,7 +4,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
 import { BLOCK_DEFINITIONS } from '@/components/blocks/registry'
 import { EDITABLE_PAGES } from '@/utils/pages'
+import { BrandPanel } from '@/components/admin/BrandPanel'
 import {
+  Palette,
   Eye,
   EyeOff,
   Monitor,
@@ -38,8 +40,7 @@ export const VisualEditorToolbar: React.FC = () => {
     addBlock,
     canUndo,
     canRedo,
-    styles,
-    setStyles
+    brandDirty
   } = useWebsiteBuilder()
 
   const barRef = useRef<HTMLDivElement>(null)
@@ -154,8 +155,9 @@ export const VisualEditorToolbar: React.FC = () => {
             onClick={() => setShowStylesModal(true)}
             className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 transition-all"
           >
-            <Settings size={14} />
-            <span>Styles</span>
+            <Palette size={14} />
+            <span>Brand &amp; Theme</span>
+            {brandDirty && <span className="w-2 h-2 rounded-full bg-amber-400" title="Unsaved brand changes" />}
           </button>
 
           <button
@@ -180,84 +182,7 @@ export const VisualEditorToolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Global Style Modal */}
-      {showStylesModal && (
-        <div className="fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6 text-left text-white">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="font-bold text-slate-100 flex items-center">
-                <Settings className="mr-2 text-blue-500" size={18} />
-                Global Branding Style
-              </h3>
-              <button type="button" onClick={() => setShowStylesModal(false)} className="text-slate-400 hover:text-white" aria-label="Close">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {(['primary_color', 'secondary_color'] as const).map((key) => (
-                  <div key={key} className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                      {key === 'primary_color' ? 'Primary Color' : 'Secondary Color'}
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={styles[key]}
-                        onChange={(e) => setStyles({ ...styles, [key]: e.target.value })}
-                        className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
-                      />
-                      <input
-                        type="text"
-                        value={styles[key]}
-                        onChange={(e) => setStyles({ ...styles, [key]: e.target.value })}
-                        className="w-full bg-slate-800 text-xs text-white border-0 rounded px-2"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Heading & Logo Font</label>
-                <select
-                  value={styles.heading_font}
-                  onChange={(e) => setStyles({ ...styles, heading_font: e.target.value })}
-                  className="w-full bg-slate-800 text-white rounded px-3 py-2 text-xs border-0 focus:outline-none"
-                >
-                  <option value="Geist Sans">Geist Sans (Clean/Modern)</option>
-                  <option value="Inter">Inter (System Premium)</option>
-                  <option value="Merriweather">Merriweather (Classic Serif)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Card Border Radius</label>
-                <select
-                  value={styles.border_radius}
-                  onChange={(e) => setStyles({ ...styles, border_radius: e.target.value })}
-                  className="w-full bg-slate-800 text-white rounded px-3 py-2 text-xs border-0 focus:outline-none"
-                >
-                  <option value="0px">Sharp (0px)</option>
-                  <option value="0.5rem">Standard (8px)</option>
-                  <option value="0.75rem">Round (12px)</option>
-                  <option value="1.5rem">Extra Round (24px)</option>
-                </select>
-              </div>
-              <p className="text-[11px] text-slate-500">Saved with the page when you press Save Draft or Publish.</p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowStylesModal(false)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
+      {showStylesModal && <BrandPanel onClose={() => setShowStylesModal(false)} />}
 
       {/* Add Section Modal */}
       {showBlocksModal && (
