@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { shrinkImage } from '@/utils/shrinkImage'
 import { Upload, X, Loader2, Check } from 'lucide-react'
 
 interface ImageUploadProps {
@@ -26,7 +27,7 @@ export default function ImageUpload({
         throw new Error('You must select an image to upload.')
       }
 
-      const file = e.target.files[0]
+      const file = await shrinkImage(e.target.files[0])
       const fileExt = file.name.split('.').pop()
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`
       const filePath = `${fileName}`
