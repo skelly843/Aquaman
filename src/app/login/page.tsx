@@ -43,8 +43,10 @@ export default function LoginPage() {
           .single()
 
         const role = profile?.role || 'customer'
-        if (role === 'admin' || role === 'global_admin' || role === 'employee') {
+        if (role === 'admin' || role === 'global_admin') {
           router.push('/admin')
+        } else if (role === 'employee') {
+          router.push('/employee')
         } else {
           router.push('/portal')
         }
