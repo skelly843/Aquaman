@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { Image as ImageIcon } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { FALLBACK_GALLERY_ITEMS } from '@/utils/fallbackData'
 import { ManageLink, SectionHeading } from './shared'
+import { PhotoLightbox, type LightboxPhoto } from './PhotoLightbox'
 import type { BlockProps } from './types'
 
-function Photo({ src, label, highlight }: { src?: string; label: string; highlight?: boolean }) {
+function Photo({ src, label, highlight, onOpen }: { src?: string; label: string; highlight?: boolean; onOpen: () => void }) {
   return (
     <div className="flex-1 space-y-2">
       <p className={`text-xs font-bold uppercase tracking-widest text-center ${highlight ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -20,8 +21,10 @@ function Photo({ src, label, highlight }: { src?: string; label: string; highlig
         }`}
       >
         {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={label} className="w-full h-full object-cover" />
+          <button type="button" onClick={onOpen} className="w-full h-full cursor-zoom-in" aria-label={`View ${label.toLowerCase()} photo full size`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={label} className="w-full h-full object-cover" />
+          </button>
         ) : (
           <div className="text-slate-300 flex flex-col items-center space-y-1">
             <ImageIcon size={24} />
@@ -36,6 +39,17 @@ function Photo({ src, label, highlight }: { src?: string; label: string; highlig
 export default function GalleryGridBlock({ data, editable, update }: BlockProps) {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [openSrc, setOpenSrc] = useState<string | null>(null)
+
+  const closeLightbox = useCallback(() => setOpenSrc(null), [])
+  const photos = useMemo<LightboxPhoto[]>(
+    () =>
+      items.flatMap((item) => [
+        ...(item.before_image ? [{ src: item.before_image, caption: `${item.title} – Before` }] : []),
+        ...(item.after_image ? [{ src: item.after_image, caption: `${item.title} – After` }] : [])
+      ]),
+    [items]
+  )
 
   useEffect(() => {
     const supabase = createClient()
@@ -68,8 +82,8 @@ export default function GalleryGridBlock({ data, editable, update }: BlockProps)
           {items.map((item) => (
             <div key={item.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row gap-4">
-                <Photo src={item.before_image} label="Before" />
-                <Photo src={item.after_image} label="After" highlight />
+                <Photo src={item.before_image} label="Before" onOpen={() => setOpenSrc(item.before_image)} />
+                <Photo src={item.after_image} label="After" highlight onOpen={() => setOpenSrc(item.after_image)} />
               </div>
 
               <div className="space-y-2">
@@ -105,6 +119,14 @@ export default function GalleryGridBlock({ data, editable, update }: BlockProps)
 
         {editable && <ManageLink href="/admin/gallery" label="Manage gallery projects" />}
       </div>
+
+      {openSrc && (
+        <PhotoLightbox
+          photos={photos}
+          startIndex={Math.max(0, photos.findIndex((p) => p.src === openSrc))}
+          onClose={closeLightbox}
+        />
+      )}
     </section>
   )
 }

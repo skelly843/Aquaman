@@ -1,4 +1,4 @@
-const MAX_SIDE = 2400
+const MAX_SIDE = 3840
 const SMALL_ENOUGH = 2 * 1024 * 1024
 
 /**
@@ -27,7 +27,7 @@ export async function shrinkImage(file: File): Promise<File> {
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
   bitmap.close()
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
   if (!blob || blob.size >= file.size) return file
   return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' })
 }
