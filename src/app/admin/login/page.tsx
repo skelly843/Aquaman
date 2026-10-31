@@ -1,5 +1,6 @@
 'use client'
 
+import { SiteName } from '@/components/SiteTheme'
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -73,7 +74,7 @@ export default function AdminLoginPage() {
             <Droplet className="text-blue-600" size={32} />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Login</h1>
-          <p className="text-slate-500 mt-2">Aquaman Management Portal</p>
+          <p className="text-slate-500 mt-2"><SiteName suffix=" Management Portal" /></p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">

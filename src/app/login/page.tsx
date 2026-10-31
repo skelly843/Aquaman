@@ -1,5 +1,6 @@
 'use client'
 
+import { SiteName } from '@/components/SiteTheme'
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -65,7 +66,7 @@ export default function LoginPage() {
             <Droplet size={32} />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Portal Login</h1>
-          <p className="text-slate-500 mt-2 font-medium">Manage your Aquaman services</p>
+          <p className="text-slate-500 mt-2 font-medium">Manage your <SiteName /> services</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">

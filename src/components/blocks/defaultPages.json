@@ -1,0 +1,216 @@
+{
+  "home": [
+    {
+      "block_type": "hero",
+      "data": {
+        "variant": "large",
+        "title": "Premium Plumbing & General Contracting",
+        "subtitle": "Expert maintenance, urgent emergency dispatch, and custom remodeling services at your fingertips. Manage operations through our live client portal.",
+        "ctaText": "Book a Service",
+        "ctaUrl": "/request-service",
+        "secondaryCtaText": "View Our Work",
+        "secondaryCtaUrl": "/gallery",
+        "backgroundImage": ""
+      }
+    },
+    {
+      "block_type": "features",
+      "data": {
+        "title": "Why Aquaman Contracting is Rated #1",
+        "subtitle": "Our primary design values",
+        "items": [
+          { "icon": "shield", "title": "Licensed & Fully Insured", "desc": "Our technicians are certified plumbing engineers and General B contractors who respect your property." },
+          { "icon": "calendar", "title": "State-of-the-Art Scheduling", "desc": "Book, adjust, pay invoices, and review high-resolution project files instantly via our premium client portal." },
+          { "icon": "dollar", "title": "Fixed, Transparent Pricing", "desc": "Enjoy absolute cost certainty. We compile comprehensive upfront estimates with line-by-line transparency." }
+        ]
+      }
+    },
+    {
+      "block_type": "services_grid",
+      "data": {
+        "title": "Our Services",
+        "subtitle": "Professional plumbing and general contracting solutions for residential & commercial needs.",
+        "limit": 6
+      }
+    },
+    {
+      "block_type": "cta_banner",
+      "data": {
+        "title": "Have a leak, clog, or remodel in mind?",
+        "body": "Tell us what's going on and our dispatch team will get back to you fast.",
+        "buttonText": "Request Service",
+        "buttonUrl": "/request-service"
+      }
+    }
+  ],
+  "about": [
+    {
+      "block_type": "hero",
+      "data": {
+        "variant": "compact",
+        "title": "About Aquaman Plumbing & General Contracting",
+        "subtitle": "Providing high-quality plumbing and contracting services with integrity, reliability, and precision.",
+        "ctaText": "",
+        "ctaUrl": "",
+        "secondaryCtaText": "",
+        "secondaryCtaUrl": "",
+        "backgroundImage": ""
+      }
+    },
+    {
+      "block_type": "text_image",
+      "data": {
+        "title": "Our Story & Mission",
+        "body": "Founded with a commitment to premium craftsmanship, Aquaman has grown from a local plumbing team into a premier general contracting firm. We specialize in handling complex residential and commercial water systems, high-efficiency upgrades, custom bathroom & kitchen remodeling, and general maintenance.",
+        "quote": "Our mission is to safeguard our clients' homes and commercial investments by delivering robust plumbing engineering, professional project management, and completely transparent pricing on every job.",
+        "image_url": "",
+        "image_side": "right"
+      }
+    },
+    {
+      "block_type": "features",
+      "data": {
+        "title": "Why Homeowners Trust Us",
+        "subtitle": "",
+        "items": [
+          { "icon": "check", "title": "Licensed & Insured", "desc": "Licensed & insured plumbing and contracting experts." },
+          { "icon": "calendar", "title": "Digital Client Portal", "desc": "Comprehensive scheduling & digital client portal tracking." },
+          { "icon": "wrench", "title": "Advanced Diagnostics", "desc": "Advanced hydro-jetting, drain camera scans, and leak diagnostics." },
+          { "icon": "clock", "title": "24/7 Emergency Support", "desc": "24/7 emergency support for pipe bursts, backups & failures." }
+        ]
+      }
+    },
+    {
+      "block_type": "features",
+      "data": {
+        "title": "Licenses & Accreditations",
+        "subtitle": "",
+        "items": [
+          { "icon": "shield", "title": "Licensed Plumber", "desc": "Fully compliant with California State Licensing Board regulations." },
+          { "icon": "award", "title": "General B Contractor", "desc": "Qualified to execute structural alterations, plumbing upgrades & framing." },
+          { "icon": "droplet", "title": "Water Treatment Certified", "desc": "Specialized in filtration systems, leak detection & pool diagnostics." }
+        ]
+      }
+    },
+    {
+      "block_type": "team",
+      "data": {
+        "title": "Meet Our Leadership Team",
+        "subtitle": "",
+        "members": [
+          { "name": "David \"Aquaman\" Carter", "role": "Founder & Master Plumber", "bio": "Over 15 years of complex water treatment & mechanical engineering experience.", "photo": "" },
+          { "name": "Marcus Rodriguez", "role": "Lead Contracting Estimator", "bio": "Expert in structural design, kitchen remodeling, and customer logistics.", "photo": "" }
+        ]
+      }
+    }
+  ],
+  "services": [
+    {
+      "block_type": "hero",
+      "data": {
+        "variant": "compact",
+        "title": "Our Services",
+        "subtitle": "Professional plumbing and general contracting solutions designed for residential & commercial needs.",
+        "ctaText": "",
+        "ctaUrl": "",
+        "secondaryCtaText": "",
+        "secondaryCtaUrl": "",
+        "backgroundImage": ""
+      }
+    },
+    {
+      "block_type": "services_grid",
+      "data": {
+        "title": "",
+        "subtitle": "",
+        "limit": 0
+      }
+    },
+    {
+      "block_type": "cta_banner",
+      "data": {
+        "title": "Not sure which service you need?",
+        "body": "Describe the problem and we'll recommend the right fix.",
+        "buttonText": "Contact Us",
+        "buttonUrl": "/contact"
+      }
+    }
+  ],
+  "gallery": [
+    {
+      "block_type": "hero",
+      "data": {
+        "variant": "compact",
+        "title": "Project Gallery",
+        "subtitle": "Explore our professional plumbing installations, bathroom transformations, and general contracting work.",
+        "ctaText": "",
+        "ctaUrl": "",
+        "secondaryCtaText": "",
+        "secondaryCtaUrl": "",
+        "backgroundImage": ""
+      }
+    },
+    {
+      "block_type": "gallery_grid",
+      "data": {
+        "title": "",
+        "subtitle": ""
+      }
+    }
+  ],
+  "contact": [
+    {
+      "block_type": "hero",
+      "data": {
+        "variant": "compact",
+        "title": "Contact Us",
+        "subtitle": "Got a plumbing emergency, leak, or custom home remodel? Get in touch with our certified engineers today.",
+        "ctaText": "",
+        "ctaUrl": "",
+        "secondaryCtaText": "",
+        "secondaryCtaUrl": "",
+        "backgroundImage": ""
+      }
+    },
+    {
+      "block_type": "contact_info",
+      "data": {
+        "title": "Get in Touch",
+        "body": "Complete the quick contact form or reach out directly. We respond to all non-emergency inquiries within 2 hours."
+      }
+    },
+    {
+      "block_type": "contact_form",
+      "data": {
+        "title": "Send us a Message",
+        "intro": "",
+        "buttonText": "Send Message",
+        "successMessage": "Message submitted successfully!"
+      }
+    }
+  ],
+  "request-service": [
+    {
+      "block_type": "hero",
+      "data": {
+        "variant": "compact",
+        "title": "Book / Request a Service",
+        "subtitle": "Please fill out the form below. Once submitted, our dispatch coordinators will contact you to finalize the schedule.",
+        "ctaText": "",
+        "ctaUrl": "",
+        "secondaryCtaText": "",
+        "secondaryCtaUrl": "",
+        "backgroundImage": ""
+      }
+    },
+    {
+      "block_type": "request_form",
+      "data": {
+        "title": "",
+        "intro": "",
+        "buttonText": "Submit Service Request",
+        "successMessage": "Booking request submitted! We will contact you soon."
+      }
+    }
+  ]
+}

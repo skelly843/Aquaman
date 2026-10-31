@@ -1,5 +1,6 @@
 'use client'
 
+import { SiteName } from '@/components/SiteTheme'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut, Calendar, Receipt, User, Home } from 'lucide-react'
@@ -31,7 +32,7 @@ export default function Sidebar({ role }: { role: 'customer' | 'employee' | 'adm
   return (
     <div className="flex flex-col w-64 bg-slate-900 text-white min-h-screen">
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-blue-400">Aquaman</h2>
+        <h2 className="text-2xl font-bold text-blue-400"><SiteName /></h2>
         <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">{role} Portal</p>
       </div>
       <nav className="flex-1 px-4 space-y-2">

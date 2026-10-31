@@ -1,3 +1,4 @@
+import { SiteName } from '@/components/SiteTheme'
 import { getProfile } from '@/utils/supabase/getProfile'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -76,7 +77,7 @@ export default async function WebsiteBuilderDashboard() {
             <span>Website Builder Dashboard</span>
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Visual editor and structured form controller hub for Aquaman General Contracting.
+            Visual editor and structured form controller hub for <SiteName />.
           </p>
         </div>
 

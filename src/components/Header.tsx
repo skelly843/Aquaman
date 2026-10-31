@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Droplet, Menu, X, User, LayoutDashboard, LogOut, Edit, Settings } from 'lucide-react'
+import { Droplet, Menu, X, User, LayoutDashboard, Settings } from 'lucide-react'
 import { useWebsiteBuilder } from '@/context/WebsiteBuilderContext'
+import { InlineText } from '@/components/admin/InlineText'
 
 export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
-  const { editMode, setEditMode, isGlobalAdmin } = useWebsiteBuilder()
+  const { styles: brand, setStyles: setBrand, editMode, previewMode } = useWebsiteBuilder()
+  const brandEditable = editMode && !previewMode
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -112,13 +114,32 @@ export default function Header() {
   const accountLink = isGlobalAdminUser || isAdmin ? '/admin/settings' : '/portal/profile'
 
   return (
-    <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm select-none">
+    <header
+      className="bg-white border-b border-slate-100 sticky z-50 shadow-sm select-none"
+      style={{ top: 'var(--editor-toolbar-h, 0px)' }}
+    >
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 shrink-0">
-          <Droplet className="text-blue-600" size={32} />
-          <span className="text-2xl font-black text-slate-900 tracking-tight">Aquaman</span>
-        </Link>
+        {brandEditable ? (
+          // While editing, the name is a text field rather than a link
+          <div className="flex items-center space-x-2 shrink-0">
+            <BrandLogo src={brand.logo_url} alt={brand.site_name} />
+            <InlineText
+              element="span"
+              value={brand.site_name}
+              onChange={(site_name) => setBrand((prev) => ({ ...prev, site_name }))}
+              placeholder="Site name"
+              className="text-2xl font-black text-slate-900 tracking-tight select-text"
+            />
+          </div>
+        ) : (
+          <Link href="/" className="flex items-center space-x-2 shrink-0">
+            <BrandLogo src={brand.logo_url} alt={brand.site_name} />
+            {brand.site_name && (
+              <span className="text-2xl font-black text-slate-900 tracking-tight">{brand.site_name}</span>
+            )}
+          </Link>
+        )}
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex space-x-8 text-sm font-bold text-slate-600">
@@ -149,18 +170,6 @@ export default function Header() {
               <Settings size={14} />
               <span>Website Builder</span>
             </Link>
-          )}
-
-          {isGlobalAdminUser && (
-            <button
-              onClick={() => setEditMode(!editMode)}
-              className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center space-x-1.5 shadow ${
-                editMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              }`}
-            >
-              <Edit size={14} />
-              <span>{editMode ? 'Exit Edit Mode' : 'Edit Website'}</span>
-            </button>
           )}
 
           {isLoggedIn ? (
@@ -244,21 +253,6 @@ export default function Header() {
               </Link>
             )}
 
-            {isGlobalAdminUser && (
-              <button
-                onClick={() => {
-                  setMenuOpen(false)
-                  setEditMode(!editMode)
-                }}
-                className={`text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow ${
-                  editMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                }`}
-              >
-                <Edit size={14} />
-                <span>{editMode ? 'Exit Edit Mode' : 'Edit Website'}</span>
-              </button>
-            )}
-
             {isLoggedIn ? (
               <>
                 <Link
@@ -310,4 +304,16 @@ export default function Header() {
       )}
     </header>
   )
+}
+
+/** Uploaded logo, or the default droplet icon */
+export function BrandLogo({ src, alt, className = 'h-10 w-auto max-w-[180px] object-contain', iconSize = 32, iconClassName = 'text-blue-600' }: {
+  src: string
+  alt: string
+  className?: string
+  iconSize?: number
+  iconClassName?: string
+}) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return src ? <img src={src} alt={alt} className={className} /> : <Droplet className={iconClassName} size={iconSize} />
 }
